@@ -1,8 +1,8 @@
 // Lab9Main.c
 // Runs on MSPM0G3507
 // Lab 9 ECE319K
-// Your name
-// Last Modified: January 12, 2026
+// Alp Shamsapour & Michael McElroy
+// Last Modified: April 10, 2026
 
 #include <stdio.h>
 #include <stdint.h>
