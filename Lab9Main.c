@@ -2,7 +2,7 @@
 // Runs on MSPM0G3507
 // Lab 9 ECE319K
 // Alp Shamsapour & Michael McElroy
-// Last Modified: April 10, 2026
+// Last Modified: April 12, 2026
 
 #include <stdio.h>
 #include <stdint.h>
@@ -23,6 +23,7 @@
 #include "entity.h"
 #include "graphics.h"
 #include "room.h"
+
 // ****note to ECE319K students****
 // the data sheet says the ADC does not work when clock is 80 MHz
 // however, the ADC seems to work on my boards at 80 MHz
@@ -37,7 +38,7 @@ alif,ayh,baa,daad,daal,dhaa,dhaal,faa,ghayh,haa,ha,jeem,kaaf,khaa,laam,meem,noon
 };
 Arabic_t Hello[]={alif,baa,ha,raa,meem,null}; // hello
 Arabic_t WeAreHonoredByYourPresence[]={alif,noon,waaw,ta,faa,raa,sheen,null}; // we are honored by your presence
-int main0(void){ // main 0, demonstrate Arabic output
+int main(void){ // main 0, demonstrate Arabic output
   Clock_Init80MHz(0);
   LaunchPad_Init();
   ST7735_InitR(INITR_REDTAB); // INITR_REDTAB for AdaFruit, INITR_BLACKTAB for HiLetGo
