@@ -61,6 +61,9 @@ uint32_t Random(uint32_t n){
 }
 Entity entList[MAXENTITIES];
 
+uint8_t worldX, worldY, oldWorldX, oldWorldY;
+uint32_t buttonState, oldButtonState; 
+
 bool DRAWREADY;
 //Entity block;
 // games  engine runs at 30Hz
@@ -80,6 +83,11 @@ void TIMG12_IRQHandler(void){uint32_t pos,msg;
     //Entity_AddVelocity(&block, 0, 1);
     if(DRAWREADY) return; //Don't run interrupt if the frame hasnt been drawn yet.
     updateEntities(entList);
+    buttonState = Switch_In();
+    if(buttonState != oldButtonState){
+      worldX = (worldX+1) %2;
+      oldButtonState = buttonState;
+    }
     DRAWREADY = true;
 
     GPIOB->DOUTTGL31_0 = GREEN; // toggle PB27 (minimally intrusive debugging)
@@ -93,13 +101,14 @@ int main(void){ // main testing
   __disable_irq();
   PLL_Init(); // set bus speed
   LaunchPad_Init();
+  Switch_Init();
   ST7735_InitPrintf(INITR_BLACKTAB); // INITR_REDTAB for AdaFruit, INITR_BLACKTAB for HiLetGo
     //note: if you colors are weird, see different options for
     // ST7735_InitR(INITR_REDTAB); inside ST7735_InitPrintf()
   ST7735_FillScreen(ST7735_BLACK);
   entityArrInit(entList);
 
-  for(uint32_t i = 0; i < 320; i++){
+  /*for(uint32_t i = 0; i < 320; i++){
 
         if(testMap[i]==1){
           ST7735_DrawBitmap((i%16)*8, (((i/16)+1)*8)-1, yellowBlock, 8, 8);
@@ -111,11 +120,11 @@ int main(void){ // main testing
           ST7735_DrawBitmap((i%16)*8, (((i/16)+1)*8)-1, cloudTop, 8, 8);
           }
 
-  }
+  }*/
 
-  Entity *block = addEntity(entList);
-  Entity_Init(block, 10, 30, 12, 12, PLAYER, bighappy, testMap);
-  Entity_Activate(block);
+  //Entity *block = addEntity(entList);
+  //Entity_Init(block, 10, 30, 12, 12, PLAYER, bighappy, testMap);
+  //Entity_Activate(block);
 
   //Entity *block2 = addEntity(entList);
   //Entity_Init(block2, 80, 30, 8, 8, ENEMY, happyBlock, testMap);
@@ -125,16 +134,45 @@ int main(void){ // main testing
     0,0,0,0,0,0,0,0,
     0,0,0,0,0,0,0,0,
     0,0,0,0,0,0,0,0,
+    1,1,1,1,1,1,1,1,
+    0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0
+  };
+  uint32_t tilemap2[64] = {
+    0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,
+    1,1,1,1,1,1,1,1,
+    0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0
+  };
+  uint32_t tilemap3[64] = {
+    0,0,0,0,0,0,0,0,
+    1,1,1,1,1,1,1,1,
+    0,0,0,0,0,0,0,0,
     0,0,0,0,0,0,0,0,
     0,0,0,0,0,0,0,0,
     0,0,0,0,0,0,0,0,
     0,0,0,0,0,0,0,0,
     0,0,0,0,0,0,0,0
   };
+
+  buttonState = oldButtonState = 0;
+  worldX = worldY = 0;
+  oldWorldX = oldWorldY = 255;
+  Room* worldMap[MAXWORLD_SIZE][MAXWORLD_SIZE];
   
-  //Room testRoom;
-  //roomInit(&testRoom, tilemap1);
-  //drawRoom(&testRoom);
+  Room testRoom1, testRoom2, testRoom3;
+  roomInit(&testRoom1, tilemap1);
+  roomInit(&testRoom2, tilemap2);
+  roomInit(&testRoom3, tilemap3);
+  setWorld(worldMap, &testRoom1, 0, 0);
+  setWorld(worldMap, &testRoom2, 1, 0);
+  setWorld(worldMap, &testRoom3, 1, 1);
 
 
   DRAWREADY = false;              //initialize draw flag
@@ -146,7 +184,15 @@ int main(void){ // main testing
     //Entity_PrintSelf(block);
     //Entity_Update(Entity *e);
     if(!DRAWREADY) continue; //pass until draw flag is set
+    if(oldWorldX != worldX || oldWorldY != worldY){
+      drawRoom(worldMap, worldX, worldY);
+      oldWorldX = worldX;
+      oldWorldY = worldY;
+    }
     drawEntities(entList);
+    ST7735_SetCursor(0, 0);
+    ST7735_OutUDec(Switch_In());
+    
     DRAWREADY = false;
   }
 }
