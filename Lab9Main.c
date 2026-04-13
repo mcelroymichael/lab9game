@@ -67,17 +67,22 @@ uint32_t buttonState, oldButtonState;
 
 bool DRAWREADY;
 
+Room* worldMap[MAXWORLD_SIZE][MAXWORLD_SIZE];
+Entity* player;
+
 void handleButtons(void){
   if((buttonState & 0b1) != oldButtonState){
       if((buttonState & 0b1) == 1){ //RISING EDGE DETECTION
-        worldX = (worldX+1) %2;
+        //worldX = (worldX+1) %2;
+        Entity_TryMove(player, 1, 0, getTileMap(worldMap, worldX, worldY));
       } else {                      //FALLING EDGE
 
       }
     }
   if(((buttonState >> 1) & 0b1) != (oldButtonState >> 1)){
       if(((buttonState >> 1) & 0b1) == 1){ //RISING EDGE DETECTION
-        worldY = (worldY+1) %2;
+        //worldY = (worldY+1) %2;
+        Entity_TryMove(player, 0, 1, getTileMap(worldMap, worldX, worldY));
 
       } else {                      //FALLING EDGE
 
@@ -128,23 +133,10 @@ int main(void){ // main testing
   ST7735_FillScreen(ST7735_BLACK);
   entityArrInit(entList);
 
-  /*for(uint32_t i = 0; i < 320; i++){
-
-        if(testMap[i]==1){
-          ST7735_DrawBitmap((i%16)*8, (((i/16)+1)*8)-1, yellowBlock, 8, 8);
-          } else if(testMap[i]==0) {
-          ST7735_DrawBitmap((i%16)*8, (((i/16)+1)*8)-1, blueBlock, 8, 8);
-          } else if(testMap[i]==2) {
-          ST7735_DrawBitmap((i%16)*8, (((i/16)+1)*8)-1, cloudBottom, 8, 8);
-          } else if(testMap[i]==3) {
-          ST7735_DrawBitmap((i%16)*8, (((i/16)+1)*8)-1, cloudTop, 8, 8);
-          }
-
-  }*/
-
-  //Entity *block = addEntity(entList);
-  //Entity_Init(block, 10, 30, 12, 12, PLAYER, bighappy, testMap);
-  //Entity_Activate(block);
+  Entity *block = addEntity(entList);
+  player = block;
+  Entity_Init(block, 0, 0, 8, 8, PLAYER, happyBlock);
+  Entity_Activate(block);
 
   //Entity *block2 = addEntity(entList);
   //Entity_Init(block2, 80, 30, 8, 8, ENEMY, happyBlock, testMap);
@@ -184,7 +176,6 @@ int main(void){ // main testing
   buttonState = oldButtonState = 0;
   worldX = worldY = 0;
   oldWorldX = oldWorldY = 255;
-  Room* worldMap[MAXWORLD_SIZE][MAXWORLD_SIZE];
   
   Room testRoom1, testRoom2, testRoom3, NULLROOM;
   roomInit(&testRoom1, tilemap1);
@@ -211,7 +202,7 @@ int main(void){ // main testing
       oldWorldX = worldX;
       oldWorldY = worldY;
     }
-    drawEntities(entList);
+    drawEntities(entList, worldMap, worldX, worldY);
     ST7735_SetCursor(0, 10);
     ST7735_OutUDec(Switch_In());
 

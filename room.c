@@ -7,18 +7,27 @@ void roomInit(Room* r, uint32_t* tilemap){
 }
 
 void drawRoom(Room* world[MAXWORLD_SIZE][MAXWORLD_SIZE], uint8_t x, uint8_t y){
-    Room* r = world[x][y];
-    
-    for(uint32_t i = 0; i < 64; i++){
+    uint8_t tileX;
+    uint8_t tileY;
 
-        if(r->tilemap[i]==0){
-          ST7735_DrawBitmap((i%8)*12, (((i/8)+1)*12)-1, greentile, 12, 12);
-          } else if(r->tilemap[i]==1) {
-          ST7735_DrawBitmap((i%8)*12, (((i/8)+1)*12)-1, bluetile, 12, 12);
-          } else if(r->tilemap[i]==2) {
-          ST7735_DrawBitmap((i%8)*12, (((i/8)+1)*12)-1, redtile, 12, 12);
-          }
-  }
+    for(tileY = 0; tileY < 8; tileY++){
+        for(tileX = 0; tileX < 8; tileX++){
+            drawRoomTile(world, x, y, tileX, tileY);
+        }
+    }
+}
+
+void drawRoomTile(Room* world[MAXWORLD_SIZE][MAXWORLD_SIZE], uint8_t roomX, uint8_t roomY,uint8_t tileX, uint8_t tileY){
+    Room* r = world[roomX][roomY];
+    uint32_t i = tileX + tileY * 8;
+
+    if(r->tilemap[i] == 0){
+        ST7735_DrawBitmap(tileX * 12, ((tileY + 1) * 12) - 1, greentile, 12, 12);
+    } else if(r->tilemap[i] == 1){
+        ST7735_DrawBitmap(tileX * 12, ((tileY + 1) * 12) - 1, bluetile, 12, 12);
+    } else if(r->tilemap[i] == 2){
+        ST7735_DrawBitmap(tileX * 12, ((tileY + 1) * 12) - 1, redtile, 12, 12);
+    }
 }
 
 void worldInit(Room* world[MAXWORLD_SIZE][MAXWORLD_SIZE], Room* null){
@@ -31,4 +40,8 @@ void worldInit(Room* world[MAXWORLD_SIZE][MAXWORLD_SIZE], Room* null){
 
 void setWorld(Room* world[MAXWORLD_SIZE][MAXWORLD_SIZE], Room* room,uint8_t x, uint8_t y){
   world[x][y] = room;
+}
+
+uint32_t* getTileMap(Room* world[MAXWORLD_SIZE][MAXWORLD_SIZE], uint8_t x, uint8_t y){
+  return world[x][y]->tilemap;
 }
