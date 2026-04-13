@@ -72,6 +72,7 @@ Room* worldMap[MAXWORLD_SIZE][MAXWORLD_SIZE];
 Entity* player;
 
 void handleButtons(void){
+  if(buttonState == oldButtonState) return;
   if((buttonState & 0b1) != oldButtonState){                  // RIGHT
       if((buttonState & 0b1) == 1){ //RISING EDGE DETECTION
         //worldX = (worldX+1) %2;
