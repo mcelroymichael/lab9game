@@ -206,7 +206,7 @@ int main(void){ // main testing
     ST7735_SetCursor(0, 10);
     ST7735_OutUDec(Switch_In());
 
-    ST7735_SetCursor(2, 15);
+    ST7735_SetCursor(2, 10);
     ST7735_OutUDec(worldX);
     ST7735_OutChar(' ');
     ST7735_OutUDec(worldY);
