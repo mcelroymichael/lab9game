@@ -85,9 +85,13 @@ void TIMG12_IRQHandler(void){uint32_t pos,msg;
     if(DRAWREADY) return; //Don't run interrupt if the frame hasnt been drawn yet.
     updateEntities(entList);
     buttonState = Switch_In();
-    if(buttonState != oldButtonState){
-      worldX = (worldX+1) %2;
-      oldButtonState = buttonState;
+    if((buttonState & 0b1) != oldButtonState){
+      if((buttonState & 0b1) == 1){ //RISING EDGE DETECTION
+        worldX = (worldX+1) %2;
+        oldButtonState = buttonState;
+      } else {                      //FALLING EDGE
+        oldButtonState = buttonState;
+      }
     }
     DRAWREADY = true;
 
