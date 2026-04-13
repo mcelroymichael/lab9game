@@ -65,6 +65,7 @@ Entity entList[MAXENTITIES];
 
 uint8_t worldX, worldY, oldWorldX, oldWorldY;
 uint32_t buttonState, oldButtonState; 
+uint32_t potState, oldPotState; 
 
 bool DRAWREADY;
 
@@ -101,20 +102,18 @@ void TIMG12_IRQHandler(void){uint32_t pos,msg;
     GPIOB->DOUTTGL31_0 = GREEN; // toggle PB27 (minimally intrusive debugging)
     GPIOB->DOUTTGL31_0 = GREEN; // toggle PB27 (minimally intrusive debugging)
 // game engine goes here
+  if(DRAWREADY) return; //Don't run interrupt if the frame hasnt been drawn yet.
     // 1) sample slide pot
+    potState = ADCin();
     // 2) read input switches
-    // 3) move sprites
-    // 4) start sounds
-    // 5) set semaphore
-    // NO LCD OUTPUT IN INTERRUPT SERVICE ROUTINES
-
-    //Entity_Update(&block);
-    //Entity_AddVelocity(&block, 0, 1);
-    if(DRAWREADY) return; //Don't run interrupt if the frame hasnt been drawn yet.
-    updateEntities(entList);
     buttonState = Switch_In();
     handleButtons();
+    // 3) move sprites
+    updateEntities(entList);
+    // 4) start sounds
+    // 5) set semaphore
     DRAWREADY = true;
+    // NO LCD OUTPUT IN INTERRUPT SERVICE ROUTINES
 
     GPIOB->DOUTTGL31_0 = GREEN; // toggle PB27 (minimally intrusive debugging)
   }
