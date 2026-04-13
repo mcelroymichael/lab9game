@@ -74,18 +74,36 @@ Entity* player;
 
 void handleButtons(void){
   if(buttonState == oldButtonState) return;
-  if((buttonState & 0b1) != oldButtonState){
+  if((buttonState & 0b1) != oldButtonState){                  // RIGHT
       if((buttonState & 0b1) == 1){ //RISING EDGE DETECTION
         //worldX = (worldX+1) %2;
         Entity_TryMove(player, 1, 0, getTileMap(worldMap, worldX, worldY));
       } else {                      //FALLING EDGE
 
       }
-    }
-  if(((buttonState >> 1) & 0b1) != (oldButtonState >> 1)){
+  }
+  if(((buttonState >> 1) & 0b1) != (oldButtonState >> 1)){    // DOWN
       if(((buttonState >> 1) & 0b1) == 1){ //RISING EDGE DETECTION
         //worldY = (worldY+1) %2;
         Entity_TryMove(player, 0, 1, getTileMap(worldMap, worldX, worldY));
+
+      } else {                      //FALLING EDGE
+
+    }
+  }
+  if(((buttonState >> 2) & 0b1) != (oldButtonState >> 2)){    // LEFT
+      if(((buttonState >> 2) & 0b1) == 1){ //RISING EDGE DETECTION
+        //worldY = (worldY+1) %2;
+        Entity_TryMove(player, -1, 0, getTileMap(worldMap, worldX, worldY));
+
+      } else {                      //FALLING EDGE
+
+    }
+  }
+  if(((buttonState >> 3) & 0b1) != (oldButtonState >> 3)){    // UP
+      if(((buttonState >> 3) & 0b1) == 1){ //RISING EDGE DETECTION
+        //worldY = (worldY+1) %2;
+        Entity_TryMove(player, 0, -1, getTileMap(worldMap, worldX, worldY));
 
       } else {                      //FALLING EDGE
 
