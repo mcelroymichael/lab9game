@@ -22,7 +22,7 @@
 *.la
 *.lo
 
-# Shared objects
+# Shared objects (inc. Windows DLLs)
 *.dll
 *.so
 *.so.*
@@ -41,12 +41,25 @@
 *.su
 *.idb
 *.pdb
+
+# Kernel Module Compile Results
+*.mod*
+*.cmd
+.tmp_versions/
+modules.order
+Module.symvers
+Mkfile.old
+dkms.conf
+
+# debug information files
 *.dwo
 
-# Other generated files
+# Other
+*.project
+*.cproject
 *.html
 *.clangd
-
-# CCS generated build output
-/Debug/
-/Release/
+*.ccsproject
+/Debug/*
+/.settings/*
+# /targetConfigs/*
