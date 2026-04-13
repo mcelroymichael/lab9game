@@ -60,6 +60,7 @@ uint32_t Random32(void){
 uint32_t Random(uint32_t n){
   return (Random32()>>16)%n;
 }
+
 Entity entList[MAXENTITIES];
 
 uint8_t worldX, worldY, oldWorldX, oldWorldY;
@@ -71,6 +72,7 @@ Room* worldMap[MAXWORLD_SIZE][MAXWORLD_SIZE];
 Entity* player;
 
 void handleButtons(void){
+  if(buttonState == oldButtonState) return;
   if((buttonState & 0b1) != oldButtonState){
       if((buttonState & 0b1) == 1){ //RISING EDGE DETECTION
         //worldX = (worldX+1) %2;
