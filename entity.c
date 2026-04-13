@@ -16,13 +16,7 @@ static int16_t Entity_DrawX(const Entity* e);
 static int16_t Entity_DrawY(const Entity* e);
 static void Entity_PrintSelf(Entity* e, Room* world[MAXWORLD_SIZE][MAXWORLD_SIZE], uint8_t roomX, uint8_t roomY);
 
-void Entity_Init(Entity* e,
-                 uint8_t tileX,
-                 uint8_t tileY,
-                 uint8_t width,
-                 uint8_t height,
-                 uint8_t type,
-                 const uint16_t* bitmap){
+void Entity_Init(Entity* e, uint8_t tileX, uint8_t tileY, uint8_t width, uint8_t height, uint8_t type, const uint16_t* bitmap){
     if(!e) return;
 
     e->active = 0;
