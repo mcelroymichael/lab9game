@@ -2,7 +2,7 @@
 // Runs on MSPM0G3507
 // Lab 9 ECE319K
 // Alp Shamsapour & Michael McElroy
-// Last Modified: April 12, 2026
+// Last Modified: April 13, 2026
 
 #include <stdio.h>
 #include <stdint.h>
