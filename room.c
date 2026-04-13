@@ -21,6 +21,14 @@ void drawRoom(Room* world[MAXWORLD_SIZE][MAXWORLD_SIZE], uint8_t x, uint8_t y){
   }
 }
 
+void worldInit(Room* world[MAXWORLD_SIZE][MAXWORLD_SIZE], Room* null){
+  for(uint32_t x = 0; x < MAXWORLD_SIZE; x++){
+    for(uint32_t y = 0; y < MAXWORLD_SIZE; y++){
+      world[x][y] = null;
+    }
+  }
+}
+
 void setWorld(Room* world[MAXWORLD_SIZE][MAXWORLD_SIZE], Room* room,uint8_t x, uint8_t y){
   world[x][y] = room;
 }

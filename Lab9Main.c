@@ -38,7 +38,7 @@ alif,ayh,baa,daad,daal,dhaa,dhaal,faa,ghayh,haa,ha,jeem,kaaf,khaa,laam,meem,noon
 };
 Arabic_t Hello[]={alif,baa,ha,raa,meem,null}; // hello
 Arabic_t WeAreHonoredByYourPresence[]={alif,noon,waaw,ta,faa,raa,sheen,null}; // we are honored by your presence
-int main(void){ // main 0, demonstrate Arabic output
+int main0(void){ // main 0, demonstrate Arabic output
   Clock_Init80MHz(0);
   LaunchPad_Init();
   ST7735_InitR(INITR_REDTAB); // INITR_REDTAB for AdaFruit, INITR_BLACKTAB for HiLetGo
@@ -66,7 +66,28 @@ uint8_t worldX, worldY, oldWorldX, oldWorldY;
 uint32_t buttonState, oldButtonState; 
 
 bool DRAWREADY;
-//Entity block;
+
+void handleButtons(void){
+  if((buttonState & 0b1) != oldButtonState){
+      if((buttonState & 0b1) == 1){ //RISING EDGE DETECTION
+        worldX = (worldX+1) %2;
+      } else {                      //FALLING EDGE
+
+      }
+    }
+  if(((buttonState >> 1) & 0b1) != (oldButtonState >> 1)){
+      if(((buttonState >> 1) & 0b1) == 1){ //RISING EDGE DETECTION
+        worldY = (worldY+1) %2;
+
+      } else {                      //FALLING EDGE
+
+    }
+  }
+  
+  oldButtonState = buttonState;
+
+}
+
 // games  engine runs at 30Hz
 void TIMG12_IRQHandler(void){uint32_t pos,msg;
   if((TIMG12->CPU_INT.IIDX) == 1){ // this will acknowledge
@@ -85,14 +106,7 @@ void TIMG12_IRQHandler(void){uint32_t pos,msg;
     if(DRAWREADY) return; //Don't run interrupt if the frame hasnt been drawn yet.
     updateEntities(entList);
     buttonState = Switch_In();
-    if((buttonState & 0b1) != oldButtonState){
-      if((buttonState & 0b1) == 1){ //RISING EDGE DETECTION
-        worldX = (worldX+1) %2;
-        oldButtonState = buttonState;
-      } else {                      //FALLING EDGE
-        oldButtonState = buttonState;
-      }
-    }
+    handleButtons();
     DRAWREADY = true;
 
     GPIOB->DOUTTGL31_0 = GREEN; // toggle PB27 (minimally intrusive debugging)
@@ -101,6 +115,7 @@ void TIMG12_IRQHandler(void){uint32_t pos,msg;
 uint8_t TExaS_LaunchPadLogicPB27PB26(void){
   return (0x80|((GPIOB->DOUT31_0>>26)&0x03));
 }
+
 
 int main(void){ // main testing
   __disable_irq();
@@ -171,10 +186,12 @@ int main(void){ // main testing
   oldWorldX = oldWorldY = 255;
   Room* worldMap[MAXWORLD_SIZE][MAXWORLD_SIZE];
   
-  Room testRoom1, testRoom2, testRoom3;
+  Room testRoom1, testRoom2, testRoom3, NULLROOM;
   roomInit(&testRoom1, tilemap1);
   roomInit(&testRoom2, tilemap2);
   roomInit(&testRoom3, tilemap3);
+  roomInit(&NULLROOM, tilemap1);
+  worldInit(worldMap, &NULLROOM);
   setWorld(worldMap, &testRoom1, 0, 0);
   setWorld(worldMap, &testRoom2, 1, 0);
   setWorld(worldMap, &testRoom3, 1, 1);
@@ -195,8 +212,14 @@ int main(void){ // main testing
       oldWorldY = worldY;
     }
     drawEntities(entList);
-    ST7735_SetCursor(0, 0);
+    ST7735_SetCursor(0, 10);
     ST7735_OutUDec(Switch_In());
+
+    ST7735_SetCursor(2, 10);
+    ST7735_OutUDec(worldX);
+    ST7735_OutChar(' ');
+    ST7735_OutUDec(worldY);
+
     
     DRAWREADY = false;
   }

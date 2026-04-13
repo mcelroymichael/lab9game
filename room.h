@@ -11,6 +11,7 @@ typedef struct{
 
 void roomInit(Room* r, uint32_t* tilemap);
 void drawRoom(Room* world[MAXWORLD_SIZE][MAXWORLD_SIZE], uint8_t x, uint8_t y);
+void worldInit(Room* world[MAXWORLD_SIZE][MAXWORLD_SIZE], Room* null);
 void setWorld(Room* world[MAXWORLD_SIZE][MAXWORLD_SIZE], Room* room,uint8_t x, uint8_t y);
 
 #endif
