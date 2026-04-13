@@ -62,4 +62,4 @@ dkms.conf
 *.ccsproject
 /Debug/*
 /.settings/*
-/targetConfigs/*
+# /targetConfigs/*

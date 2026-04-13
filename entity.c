@@ -1,267 +1,214 @@
 #include "entity.h"
 #include "../inc/ST7735.h"
 #include "graphics.h"
+#include "room.h"
 
+#define MAP_WIDTH      8
+#define MAP_HEIGHT     8
+#define TILE_SIZE      12
+#define BLOCKED_TILE   1u
 
+static uint8_t Map_InBounds(int8_t col, int8_t row);
+static uint16_t Map_Index(uint8_t col, uint8_t row);
+static uint32_t Map_GetTile(const uint32_t* tilemap, uint8_t col, uint8_t row);
+static uint8_t Map_IsPassable(const uint32_t* tilemap, int8_t col, int8_t row);
+static int16_t Entity_DrawX(const Entity* e);
+static int16_t Entity_DrawY(const Entity* e);
+static void Entity_PrintSelf(Entity* e, Room* world[MAXWORLD_SIZE][MAXWORLD_SIZE], uint8_t roomX, uint8_t roomY);
 
-// **********Entity_Init*******************
-// initializes entity
-// Input:   e is the entity's pointer
-//          x         horizontal position
-//          y         vertical position
-//          width     width of bitmap
-//          height    height of bitmap
-//          bitmap    points to bitmap data
-// Output: none
-void Entity_Init(Entity* e, uint8_t x, uint8_t y, uint8_t width, uint8_t height, uint8_t type, const uint16_t* bitmap, const uint8_t* tilemap){
+void Entity_Init(Entity* e, uint8_t tileX, uint8_t tileY, uint8_t width, uint8_t height, uint8_t type, const uint16_t* bitmap){
+    if(!e) return;
+
     e->active = 0;
-    e->x = x;
-    e->y = y;
-    e->oldx = 255;
-    e->oldy = 255;
+
+    // Tile/grid position is the gameplay position.
+    e->tileX = tileX;
+    e->tileY = tileY;
+    e->oldTileX = 255;
+    e->oldTileY = 255;
+
+    // Kept only for compatibility/future animation use.
     e->vx = 0;
     e->vy = 0;
+
     e->width = width;
     e->height = height;
     e->type = type;
     e->bitmap = bitmap;
-    e->tilemap = tilemap;
 }
 
 // **********Entity_Activate*******************
-// set entity active
-// Input: e is the entity's pointer
-// Output: none
 void Entity_Activate(Entity* e){
+    if(!e) return;
     e->active = 1;
 }
 
 // **********Entity_Deactivate*******************
-// set entity inactive
-// Input: e is the entity's pointer
-// Output: none
 void Entity_Deactivate(Entity* e){
+    if(!e) return;
     e->active = 0;
 }
 
 // **********Entity_Update*******************
-// updates entity position using velocity
-// Input: e is the entity's pointer
-// Output: none
+// Grid movement should happen only through Entity_TryMove.
 void Entity_Update(Entity* e){
-    if(e->active){
-        Entity_Friction(e);
-        Entity_AddVelocity(e, 0, 1);
-        Entity_SetVelocity(e, 1, e->vy);
-        e->y = (e->y + e->vy)%160;
-        checkVertCollisions(e, e->tilemap);
-        e->x =(e->x + e->vx)%128;
-        checkHoriCollisions(e, e->tilemap);
+    if(!e || !e->active) return;
+}
 
+// **********Entity_SetTilePosition*******************
+void Entity_SetTilePosition(Entity* e, uint8_t tileX, uint8_t tileY){
+    if(!e) return;
+    e->tileX = tileX;
+    e->tileY = tileY;
+}
+
+// **********Entity_TryMove*******************
+// Attempts to move one tile. Returns 1 on success, 0 if blocked/out of bounds.
+uint8_t Entity_TryMove(Entity* e, int8_t dx, int8_t dy, const uint32_t* roomTilemap){
+    int8_t newCol;
+    int8_t newRow;
+
+    if(!e || !e->active || !roomTilemap) return 0;
+
+    newCol = (int8_t)e->tileX + dx;
+    newRow = (int8_t)e->tileY + dy;
+
+    if(!Map_InBounds(newCol, newRow)){
+        return 0;
     }
+
+    if(!Map_IsPassable(roomTilemap, newCol, newRow)){
+        return 0;
+    }
+
+    e->tileX = (uint8_t)newCol;
+    e->tileY = (uint8_t)newRow;
+    return 1;
 }
 
-void Entity_Friction(Entity* e){
-    
-    if(e->vx == 0) return;
-    e->vx += (e->vx < 0) ? 1 : -1;
-}
-
-void Entity_SetPosition(Entity* e, int8_t x, int8_t y){
-    e->x = x;
-    e->y = y;
-}
-
-// **********Entity_SetVelocity*******************
-// sets entity velocity
-// Input: e is the entity's pointer
-//        vx is horizontal velocity
-//        vy is vertical velocity
-// Output: none
-void Entity_SetVelocity(Entity* e, int8_t vx, int8_t vy){
-    e->vx = vx;
-    e->vy = vy;
-}
-
-// **********Entity_AddVelocity*******************
-// adds vector to entity's velocity
-// Input: e is the entity's pointer
-//        vx is horizontal velocity
-//        vy is vertical velocity
-// Output: none
-void Entity_AddVelocity(Entity* e, int8_t vx, int8_t vy){
-    e->vx = (e->vx + vx > 7||e->vx + vx < -7) ? 7 : e->vx + vx;
-    e->vy = (e->vy + vy > 7||e->vx + vy < -7) ? 7 : e->vy + vy;
-}
-
-// **********Entity_PrintSelf*******************
-// displays the entity on the screen
-// Input: e is the entity's pointer
-// Output: none
-static void Entity_PrintSelf(Entity* e){
-    if(e->active&&(e->oldx!=e->x||e->oldy!=e->y)){
-        //ST7735_FillRect(e->oldx, e->oldy - 7, e->width, e->height, ST7735_BLACK);
-        redrawback(e);
-        ST7735_DrawBitmap(e->x, e->y, e->bitmap, e->width, e->height);
-        e->oldx = e->x;
-        e->oldy = e->y;
-        }
-}
-
+// **********Entity_SetBitmap*******************
 void Entity_SetBitmap(Entity* e, const uint16_t* bitmap){
+    if(!e) return;
     e->bitmap = bitmap;
 }
 
-void Entity_SetTilemap(Entity* e, const uint8_t* tilemap){
-    e->tilemap = tilemap;
-}
+// **********Entity_PrintSelf*******************
+// Displays the entity on the screen.
+static void Entity_PrintSelf(Entity* e, Room* world[MAXWORLD_SIZE][MAXWORLD_SIZE], uint8_t roomX, uint8_t roomY){
+    int16_t drawX;
+    int16_t drawY;
 
-static void redrawback(Entity* e){
-    uint8_t leftCol = e->oldx / 8;
-    uint8_t rightCol = (e->oldx + e->width - 1) / 8;
-    uint8_t topRow = (e->oldy - e->height + 1) / 8;
-    uint8_t bottomRow = e->oldy / 8;
+    if(!e || !e->active || !e->bitmap) return;
 
-    for(uint8_t col = leftCol; col <=rightCol; col++){
-        for(uint8_t row = topRow; row <= bottomRow; row++){
-            uint16_t i = col + (row << 4);
-            if(e->tilemap[i]==1){
-          ST7735_DrawBitmap((i%16)*8, (((i/16)+1)*8)-1, yellowBlock, 8, 8);
-          } else if(e->tilemap[i]==0) {
-          ST7735_DrawBitmap((i%16)*8, (((i/16)+1)*8)-1, blueBlock, 8, 8);
-          } else if(e->tilemap[i]==2) {
-          ST7735_DrawBitmap((i%16)*8, (((i/16)+1)*8)-1, cloudBottom, 8, 8);
-          } else if(e->tilemap[i]==3) {
-          ST7735_DrawBitmap((i%16)*8, (((i/16)+1)*8)-1, cloudTop, 8, 8);
-          }
-
+    // redraw OLD tile if moved
+    if(e->oldTileX != e->tileX || e->oldTileY != e->tileY){
+        if(e->oldTileX < MAP_WIDTH && e->oldTileY < MAP_HEIGHT){
+            drawRoomTile(world, roomX, roomY, e->oldTileX, e->oldTileY);
         }
     }
-    
+
+    // draw entity at new position
+    drawX = Entity_DrawX(e);
+    drawY = Entity_DrawY(e);
+    ST7735_DrawBitmap(drawX, drawY, e->bitmap, e->width, e->height);
+
+    // sync old position AFTER redraw
+    e->oldTileX = e->tileX;
+    e->oldTileY = e->tileY;
 }
 
+// **********Entity_DrawX*******************
+// Centers a smaller sprite inside a 12x12 tile.
+static int16_t Entity_DrawX(const Entity* e){
+    int16_t tilePixelX = (int16_t)e->tileX * TILE_SIZE;
+    return tilePixelX + ((int16_t)TILE_SIZE - (int16_t)e->width) / 2;
+}
+
+// **********Entity_DrawY*******************
+// ST7735_DrawBitmap uses bottom-left as its Y anchor.
+// This centers a smaller sprite inside a 12x12 tile.
+static int16_t Entity_DrawY(const Entity* e){
+    int16_t tileTopY = (int16_t)e->tileY * TILE_SIZE;
+    int16_t spriteTopY = tileTopY + ((int16_t)TILE_SIZE - (int16_t)e->height) / 2;
+    return spriteTopY + e->height - 1;
+}
+
+// **********entityArrInit*******************
 void entityArrInit(Entity* entities){
-    for(uint8_t i = 0; i < MAXENTITIES; i++){
-        Entity newEntity;
-        Entity_Init(&newEntity, 0, 0, 0, 0, 255, NULLARR16, NULLARR8);
-        entities[i] = newEntity;
+    uint8_t i;
+
+    if(!entities) return;
+
+    for(i = 0; i < MAXENTITIES; i++){
+        Entity_Init(&entities[i], 0, 0, 8, 8, 255, NULLARR16);
     }
 }
 
+// **********addEntity*******************
+// Returns an initialized inactive slot.
 Entity* addEntity(Entity* entities){
-    for(uint8_t i = 0; i < MAXENTITIES; i++){
+    uint8_t i;
+
+    if(!entities) return 0;
+
+    for(i = 0; i < MAXENTITIES; i++){
         if(!entities[i].active){
-            Entity newEntity;
-            entities[i] = newEntity;
+            Entity_Init(&entities[i], 0, 0, 8, 8, 255, NULLARR16);
             return &entities[i];
-        }       
+        }
     }
-        /*****IF THERE ARE NO AVAILABLE SLOTS, THE ENTITY WILL BE PLACES IN LAST SLOT*****/
-        Entity newEntity;
-        entities[MAXENTITIES-1] = newEntity;
-        return &entities[MAXENTITIES-1];
+
+    // Fallback: reuse last slot.
+    Entity_Init(&entities[MAXENTITIES - 1], 0, 0, 8, 8, 255, NULLARR16);
+    return &entities[MAXENTITIES - 1];
 }
 
+// **********updateEntities*******************
 void updateEntities(Entity* entities){
-    for(uint8_t i = 0; i < MAXENTITIES; i++){
+    uint8_t i;
+
+    if(!entities) return;
+
+    for(i = 0; i < MAXENTITIES; i++){
         Entity_Update(&entities[i]);
-        //Entity_PrintSelf(&entities[i]);
     }
 }
 
-void drawEntities(Entity* entities){
-    for(uint8_t i = 0; i < MAXENTITIES; i++){
-        //Entity_Update(&entities[i]);
-        Entity_PrintSelf(&entities[i]);
+// **********drawEntities*******************
+void drawEntities(Entity* entities, Room* world[MAXWORLD_SIZE][MAXWORLD_SIZE], uint8_t roomX, uint8_t roomY){
+    uint8_t i;
+
+    if(!entities) return;
+
+    for(i = 0; i < MAXENTITIES; i++){
+        Entity_PrintSelf(&entities[i], world, roomX, roomY);
     }
 }
 
-void checkHoriCollisions(Entity* e, const uint8_t* tilemap){
-    if(e->vx == 0) return;
 
-    uint8_t leftCol = e->x / 8;
-    uint8_t rightCol = (e->x + e->width - 1) / 8;
-    uint8_t topRow = (e->y - e->height + 1) / 8;
-    uint8_t bottomRow = e->y / 8;
+// ============================================================
+// Map helpers
+// ============================================================
 
-    uint8_t row;
-    uint16_t i;
-
-    if(e->vx < 0){
-        for(row = topRow; row <= bottomRow; row++){
-            i = leftCol + (row << 4);
-            if(tilemap[i] == 1){
-                fixHoriCollision(e);
-                return;
-            }
-        }
-    }
-    else if(e->vx > 0){
-        for(row = topRow; row <= bottomRow; row++){
-            i = rightCol + (row << 4);
-            if(tilemap[i] == 1){
-                fixHoriCollision(e);
-                return;
-            }
-        }
-    }
+// **********Map_InBounds*******************
+static uint8_t Map_InBounds(int8_t col, int8_t row){
+    return (col >= 0 && col < MAP_WIDTH && row >= 0 && row < MAP_HEIGHT);
 }
 
-void checkVertCollisions(Entity* e, const uint8_t* tilemap){
-    uint8_t leftCol = e->x / 8;
-    uint8_t rightCol = (e->x + e->width - 1) / 8;
-    uint8_t topRow = (e->y - e->height + 1) / 8;
-    uint8_t bottomRow = e->y / 8;
-
-    uint8_t col;
-    uint16_t i;
-
-    if(e->vy < 0){ // moving up
-        for(col = leftCol; col <= rightCol; col++){
-            i = col + (topRow << 4);
-            if(tilemap[i] == 1){
-                fixVertCollision(e);
-                return;
-            }
-        }
-    }
-    else if(e->vy > 0){ // moving down
-        for(col = leftCol; col <= rightCol; col++){
-            i = col + (bottomRow << 4);
-            if(tilemap[i] == 1){
-                fixVertCollision(e);
-                return;
-            }
-        }
-    }
+// **********Map_Index*******************
+static uint16_t Map_Index(uint8_t col, uint8_t row){
+    return (uint16_t)row * MAP_WIDTH + col;
 }
 
-static void fixHoriCollision(Entity* e){
-
-    if(e->vx > 0){ // moving right
-        int tileX = (e->x + e->width - 1) / 8;
-        e->x = tileX * 8 - e->width;
-    }
-    else if(e->vx < 0){ // moving left
-        int tileX = e->x / 8;
-        e->x = (tileX + 1) * 8;
-    }
-
-    e->vx = 0;
-    e->vy = -5;
+// **********Map_GetTile*******************
+static uint32_t Map_GetTile(const uint32_t* tilemap, uint8_t col, uint8_t row){
+    return tilemap[Map_Index(col, row)];
 }
 
-static void fixVertCollision(Entity* e){
-
-    if(e->vy > 0){ // moving down (falling)
-        int tileY = e->y / 8;
-        e->y = tileY * 8 - 1;
-        // grounded = 1;
-    }
-    else if(e->vy < 0){ // moving up (ceiling)
-        int tileY = (e->y - e->height + 1) / 8;
-        e->y = (tileY + 1) * 8 + e->height - 1;
-    }
-
-    e->vy = 0;
+// **********Map_IsPassable*******************
+static uint8_t Map_IsPassable(const uint32_t* tilemap, int8_t col, int8_t row){
+    if(!tilemap) return 0;
+    if(!Map_InBounds(col, row)) return 0;
+    return (Map_GetTile(tilemap, (uint8_t)col, (uint8_t)row) != BLOCKED_TILE);
 }
+
