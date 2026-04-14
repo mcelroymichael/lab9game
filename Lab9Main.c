@@ -110,11 +110,20 @@ void handleButtons(void){
         } else {                      //FALLING EDGE
 
       }
+    if(((buttonState) & 0b1111) != (oldButtonState)){    // ALL
+        if(((buttonState) & 0b1111) == 0b1111){ //RISING EDGE DETECTION
+          //worldY = (worldY+1) %2;
+          worldX = (worldX +1)% MAXWORLD_SIZE;
+          worldY = (worldY +1)% MAXWORLD_SIZE;
+
+        } else {                      //FALLING EDGE
+
+      }
     }
   }
   
   oldButtonState = buttonState;
-
+  }
 }
 
 // games  engine runs at 30Hz
@@ -139,6 +148,7 @@ void TIMG12_IRQHandler(void){uint32_t pos,msg;
     GPIOB->DOUTTGL31_0 = GREEN; // toggle PB27 (minimally intrusive debugging)
   }
 }
+
 uint8_t TExaS_LaunchPadLogicPB27PB26(void){
   return (0x80|((GPIOB->DOUT31_0>>26)&0x03));
 }
