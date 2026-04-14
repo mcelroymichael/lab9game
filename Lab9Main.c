@@ -23,7 +23,6 @@
 #include "entity.h"
 #include "graphics.h"
 #include "room.h"
-#include "World.h"
 
 // ****note to ECE319K students****
 // the data sheet says the ADC does not work when clock is 80 MHz

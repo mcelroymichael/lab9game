@@ -24,24 +24,32 @@
 #include "graphics.h"
 #include "room.h"
 #include "Lab9Main.c"
-#include "World.h"
 
-#define language    0;
-#define mainmenu    1;
-#define tutorial    2;
-#define level1      3;
-#define level2      4;
-#define level3      5;
+#define move0   0
+#define move1   1
+#define move2   2
+#define move3   3
 
-struct world{
-    int cur;
-    int states[6] = {0};
-    bool allowinput;
-}
+struct player{
+    int health;
+    int moveset[4] = {move0, move1, move2, move3};
+    int movement;
+    int evasion;
+    bool alive;
+};
 
-typedef struct world world_t;
+struct friendly{
+    int health;
+    int moveset[4] = {move0, move1, move2, move3};
+    int movement;
+    int evasion;
+    bool alive;
+};
 
-void WorldInit(void){
-    world.cur = 0;
-    allowinput = 0;
-}
+struct playerMoves{
+    // int struct(move);
+};
+
+typedef struct player player_t;
+typedef struct friendly friendly_t;
+typedef struct playerMoves playerMoves_t;
