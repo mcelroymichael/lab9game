@@ -24,5 +24,9 @@ extern const uint16_t cat[256];
 extern const uint16_t greentile[144];
 extern const uint16_t redtile[144];
 extern const uint16_t bluetile[144];
+extern const uint16_t logo[10240];
+extern const uint32_t tilemap1[64];
+extern const uint32_t tilemap1[64];
+extern const uint32_t tilemap1[64];
 
 #endif

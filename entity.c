@@ -74,7 +74,7 @@ uint8_t Entity_TryMove(Entity* e, int8_t dx, int8_t dy, const uint32_t* roomTile
     newRow = (int8_t)e->tileY + dy;
 
     if(!Map_InBounds(newCol, newRow)){
-        return 0;
+        return 2;
     }
 
     if(!Map_IsPassable(roomTilemap, newCol, newRow)){

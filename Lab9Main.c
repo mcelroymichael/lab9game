@@ -23,6 +23,7 @@
 #include "entity.h"
 #include "graphics.h"
 #include "room.h"
+#include "gamestate.h"
 
 // ****note to ECE319K students****
 // the data sheet says the ADC does not work when clock is 80 MHz
@@ -75,49 +76,121 @@ Entity* player;
 void handleButtons(void){
   if(buttonState == oldButtonState) return;
   else{
-    // DEBOUNCING (WAIT FUNCTION CAN GO HERE)
-    if((buttonState & 0b1) != oldButtonState){                  // RIGHT
-        if((buttonState & 0b1) == 1){ //RISING EDGE DETECTION
-          //worldX = (worldX+1) %2;
-          Entity_TryMove(player, 1, 0, getTileMap(worldMap, worldX, worldY));
-        } else {                      //FALLING EDGE
+    uint8_t status;
+    bool inMenu = false;
 
+    if(GameState_Get() == GAMESTATE_MAIN_MENU || GameState_Get() == GAMESTATE_LANGUAGE_SELECT) {
+      inMenu = true;
+    }
+
+    // DEBOUNCING (WAIT FUNCTION CAN GO HERE)
+    if(((buttonState >> 0) & 0b1) != oldButtonState){                  // A_BUTTON
+        if(((buttonState >> 0) & 0b1) == 1){ //RISING EDGE DETECTION
+          if(inMenu){
+            GameState_OnButtonPressed(GAMEBUTTON_A);
+          } else{
+
+          }
+        } else {                      //FALLING EDGE
+          if(inMenu){
+            GameState_OnButtonReleased(GAMEBUTTON_A);
+          } else{
+
+          }
         }
     }
-    if(((buttonState >> 1) & 0b1) != (oldButtonState >> 1)){    // DOWN
+    if(((buttonState >> 1) & 0b1) != oldButtonState){                  // RIGHT
         if(((buttonState >> 1) & 0b1) == 1){ //RISING EDGE DETECTION
-          //worldY = (worldY+1) %2;
-          Entity_TryMove(player, 0, 1, getTileMap(worldMap, worldX, worldY));
-
+          if(inMenu){
+            GameState_OnButtonPressed(GAMEBUTTON_RIGHT);
+          } else{
+            status = Entity_TryMove(player, 1, 0, getTileMap(worldMap, worldX, worldY));
+            if(status == 2) {
+              if((worldX + 1) < MAXWORLD_SIZE){
+                worldX = worldX + 1;
+                Entity_SetTilePosition(player, 0, player->tileY);
+              }
+            }
+          }
         } else {                      //FALLING EDGE
+          if(inMenu){
+            GameState_OnButtonReleased(GAMEBUTTON_RIGHT);
+          } else{
 
-      }
+          }
+        }
     }
-    if(((buttonState >> 2) & 0b1) != (oldButtonState >> 2)){    // LEFT
+    if(((buttonState >> 2) & 0b1) != (oldButtonState >> 1)){    // DOWN
         if(((buttonState >> 2) & 0b1) == 1){ //RISING EDGE DETECTION
-          //worldY = (worldY+1) %2;
-          Entity_TryMove(player, -1, 0, getTileMap(worldMap, worldX, worldY));
+          if(inMenu){
+            GameState_OnButtonPressed(GAMEBUTTON_DOWN);
+          } else{
+            status = Entity_TryMove(player, 0, 1, getTileMap(worldMap, worldX, worldY));
+            if(status == 2) {
+              if((worldY + 1) < MAXWORLD_SIZE){
+                worldY = worldY + 1;
+                Entity_SetTilePosition(player, player->tileX, 0);
+              }
+            }
+          }
 
         } else {                      //FALLING EDGE
+          if(inMenu){
+            GameState_OnButtonReleased(GAMEBUTTON_DOWN);
+          } else{
 
+          }
       }
     }
-    if(((buttonState >> 3) & 0b1) != (oldButtonState >> 3)){    // UP
+    if(((buttonState >> 3) & 0b1) != (oldButtonState >> 2)){    // LEFT
         if(((buttonState >> 3) & 0b1) == 1){ //RISING EDGE DETECTION
-          //worldY = (worldY+1) %2;
-          Entity_TryMove(player, 0, -1, getTileMap(worldMap, worldX, worldY));
-
+          if(inMenu){
+            GameState_OnButtonPressed(GAMEBUTTON_LEFT);
+          } else{
+            status = Entity_TryMove(player, -1, 0, getTileMap(worldMap, worldX, worldY));
+            if(status == 2) {
+              if((worldX - 1) >= 0){
+                worldX = worldX - 1;
+                Entity_SetTilePosition(player, 7, player->tileY);
+              }
+            }
+          }
         } else {                      //FALLING EDGE
+          if(inMenu){
+            GameState_OnButtonReleased(GAMEBUTTON_LEFT);
+          } else{
 
+          }
       }
-    if(((buttonState) & 0b1111) != (oldButtonState)){    // ALL
-        if(((buttonState) & 0b1111) == 0b1111){ //RISING EDGE DETECTION
+    }
+    if(((buttonState >> 4) & 0b1) != (oldButtonState >> 3)){    // UP
+        if(((buttonState >> 4) & 0b1) == 1){ //RISING EDGE DETECTION
+          if(inMenu){
+            GameState_OnButtonPressed(GAMEBUTTON_UP);
+          } else{
+            status = Entity_TryMove(player, 0, -1, getTileMap(worldMap, worldX, worldY));
+            if(status == 2) {
+              if((worldY - 1) >= 0){
+                worldY = worldY - 1;
+                Entity_SetTilePosition(player, player->tileX, 7);
+              }
+            }
+          }
+        } else {                      //FALLING EDGE
+          if(inMenu){
+            GameState_OnButtonReleased(GAMEBUTTON_UP);
+          } else{
+
+          }
+      }
+    if(((buttonState >> 1) & 0b1111) != (oldButtonState)){    // ALL
+        if(((buttonState >> 1) & 0b1111) == 0b1111){ //RISING EDGE DETECTION
           //worldY = (worldY+1) %2;
           worldX = (worldX +1)% MAXWORLD_SIZE;
           worldY = (worldY +1)% MAXWORLD_SIZE;
 
         } else {                      //FALLING EDGE
-
+          
       }
     }
   }
@@ -163,7 +236,8 @@ int main(void){ // main testing
     //note: if you colors are weird, see different options for
     // ST7735_InitR(INITR_REDTAB); inside ST7735_InitPrintf()
   ST7735_FillScreen(ST7735_BLACK);
-  entityArrInit(entList);
+  
+  /*entityArrInit(entList);
 
   Entity *block = addEntity(entList);
   player = block;
@@ -173,40 +247,10 @@ int main(void){ // main testing
   //Entity *block2 = addEntity(entList);
   //Entity_Init(block2, 80, 30, 8, 8, ENEMY, happyBlock, testMap);
   //Entity_Activate(block2);
-
-  uint32_t tilemap1[64] = {
-    0,0,0,0,0,0,0,0,
-    0,0,0,0,0,0,0,0,
-    0,0,0,0,0,0,0,0,
-    1,1,1,0,0,1,1,1,
-    0,0,0,0,0,0,0,0,
-    0,0,0,0,0,0,0,0,
-    0,0,0,0,0,0,0,0,
-    0,0,0,0,0,0,0,0
-  };
-  uint32_t tilemap2[64] = {
-    0,0,0,0,0,0,0,0,
-    0,0,0,0,0,0,0,0,
-    0,0,0,0,0,0,0,0,
-    0,0,0,0,0,0,0,0,
-    0,0,0,0,0,0,0,0,
-    1,0,0,0,1,1,1,1,
-    0,0,0,0,0,0,0,0,
-    0,0,0,0,0,0,0,0
-  };
-  uint32_t tilemap3[64] = {
-    0,0,0,1,1,1,0,0,
-    0,0,1,1,1,0,0,0,
-    0,0,1,1,0,0,0,0,
-    0,0,1,1,0,0,0,0,
-    0,0,0,0,0,0,0,0,
-    0,0,1,1,0,0,0,0,
-    0,1,1,0,0,0,0,0,
-    0,1,1,0,0,0,0,0
-  };
-
+*/
+  GameState_Init();
   buttonState = oldButtonState = 0;
-  worldX = worldY = 0;
+  /*worldX = worldY = 0;
   oldWorldX = oldWorldY = 255;
   
   Room testRoom1, testRoom2, testRoom3, NULLROOM;
@@ -217,7 +261,7 @@ int main(void){ // main testing
   worldInit(worldMap, &NULLROOM);
   setWorld(worldMap, &testRoom1, 0, 0);
   setWorld(worldMap, &testRoom2, 1, 0);
-  setWorld(worldMap, &testRoom3, 1, 1);
+  setWorld(worldMap, &testRoom3, 1, 1);*/
 
 
   DRAWREADY = false;              //initialize draw flag
@@ -229,7 +273,7 @@ int main(void){ // main testing
     //Entity_PrintSelf(block);
     //Entity_Update(Entity *e);
     if(!DRAWREADY) continue; //pass until draw flag is set
-    if(oldWorldX != worldX || oldWorldY != worldY){
+    /*if(oldWorldX != worldX || oldWorldY != worldY){
       drawRoom(worldMap, worldX, worldY);
       oldWorldX = worldX;
       oldWorldY = worldY;
@@ -241,8 +285,8 @@ int main(void){ // main testing
     ST7735_SetCursor(2, 10);
     ST7735_OutUDec(worldX);
     ST7735_OutChar(' ');
-    ST7735_OutUDec(worldY);
-
+    ST7735_OutUDec(worldY);*/
+    GameState_Draw();
     
     DRAWREADY = false;
   }
