@@ -3,6 +3,8 @@
 #include "room.h"
 #include "../inc/ST7735.h"
 #include "graphics.h"
+#include <stdio.h>
+#include <stdbool.h>
 
 #define MENU_OPTION_COUNT 2
 #define LANGUAGE_OPTION_COUNT 2
@@ -16,6 +18,7 @@ static uint8_t gMainMenuSelection = 0;
 static uint8_t gLanguageSelection = 0;
 static uint8_t gGameplayLoaded = 0;
 static uint8_t gScreenDirty = 1;
+static bool Changed = 0;
 
 // ------------------------------------------------------------
 // External gameplay objects/functions you already have or will add
@@ -32,9 +35,9 @@ extern void drawEntities(Entity* entities,
                          uint8_t roomY);
 
 // Gameplay hooks you should implement elsewhere.
-extern void World_InitLevel1(Room* world[MAXWORLD_SIZE][MAXWORLD_SIZE]);
-extern void Level1_SpawnEntities(Entity* entities, Room* world[MAXWORLD_SIZE][MAXWORLD_SIZE]);
-extern void Level1_ResetPlayerPosition(void);
+extern void World_InitINGAME(Room* world[MAXWORLD_SIZE][MAXWORLD_SIZE]);
+extern void INGAME_SpawnEntities(Entity* entities, Room* world[MAXWORLD_SIZE][MAXWORLD_SIZE]);
+extern void INGAME_ResetPlayerPosition(void);
 
 // ------------------------------------------------------------
 // Internal helpers
@@ -43,7 +46,7 @@ static void GameState_DrawLanguageSelect(void);
 static void GameState_DrawMainMenu(void);
 static void GameState_DrawGameplay(void);
 static void GameState_EnterMainMenu(void);
-static void GameState_StartLevel1(void);
+static void GameState_StartINGAME(void);
 static void GameState_HandlePressedLanguageSelect(GameButton button);
 static void GameState_HandlePressedMainMenu(GameButton button);
 static void GameState_HandlePressedGameplay(GameButton button);
@@ -86,7 +89,7 @@ void GameState_Update(void){
         case GAMESTATE_MAIN_MENU:
             break;
 
-        case GAMESTATE_LEVEL1:
+        case GAMESTATE_INGAME:
             // Put gameplay tick updates here later.
             // Example:
             // updateEntities(entities);
@@ -114,7 +117,7 @@ void GameState_Draw(void){
             }
             break;
 
-        case GAMESTATE_LEVEL1:
+        case GAMESTATE_INGAME:
             GameState_DrawGameplay();
             break;
 
@@ -133,7 +136,7 @@ void GameState_OnButtonPressed(GameButton button){
             GameState_HandlePressedMainMenu(button);
             break;
 
-        case GAMESTATE_LEVEL1:
+        case GAMESTATE_INGAME:
             GameState_HandlePressedGameplay(button);
             break;
 
@@ -152,7 +155,7 @@ void GameState_OnButtonReleased(GameButton button){
             GameState_HandleReleasedMainMenu(button);
             break;
 
-        case GAMESTATE_LEVEL1:
+        case GAMESTATE_INGAME:
             GameState_HandleReleasedGameplay(button);
             break;
 
@@ -201,11 +204,16 @@ static void GameState_HandleReleasedLanguageSelect(GameButton button){
 }
 
 static void GameState_DrawLanguageSelect(void){
-    ST7735_FillScreen(ST7735_BLACK);
+    if(Changed == 1){
+        ST7735_FillScreen(ST7735_BLACK);
+        Changed = 0;
+    } else {
+        //ST7735_FillRect(int16_t x, int16_t y, 6, 8, ST7735_BLACK)
+    }
 
-    if(gLanguage == LANGUAGE_ENGLISH || gLanguageSelection == 0){
+    if(gLanguage == LANGUAGE_ENGLISH){
         ST7735_SetCursor(2, 1);
-        ST7735_OutString("Select Language");
+        ST7735_OutString("Select Language   ");
 
         ST7735_SetCursor(2, 4);
         ST7735_OutString(gLanguageSelection == 0 ? "> English" : "  English");
@@ -213,11 +221,13 @@ static void GameState_DrawLanguageSelect(void){
         ST7735_SetCursor(2, 6);
         ST7735_OutString(gLanguageSelection == 1 ? "> Spanish" : "  Spanish");
     } else {
+        /*ST7735_SetCursor(2, 1);
+        ST7735_OutString("               ");*/
         ST7735_SetCursor(2, 1);
-        ST7735_OutString("Selecciona una Lenguaje");
+        ST7735_OutString("Seleccionar idioma");
 
         ST7735_SetCursor(2, 4);
-        ST7735_OutString(gLanguageSelection == 0 ? "> Ingles" : "  Ingles");
+        ST7735_OutString(gLanguageSelection == 0 ? "> Ingles " : "  Ingles ");
 
         ST7735_SetCursor(2, 6);
         ST7735_OutString(gLanguageSelection == 1 ? "> Espanol" : "  Espanol");
@@ -231,6 +241,7 @@ static void GameState_EnterMainMenu(void){
     gMainMenuSelection = 0;
     gGameState = GAMESTATE_MAIN_MENU;
     gScreenDirty = 1;
+    Changed = 1;
 }
 
 static void GameState_HandlePressedMainMenu(GameButton button){
@@ -253,12 +264,14 @@ static void GameState_HandlePressedMainMenu(GameButton button){
             switch(gMainMenuSelection){
                 case 0:
                     gScreenDirty = 1;
-                    GameState_StartLevel1();
+                    GameState_StartINGAME();
+                    Changed = 1;
                     break;
 
                 case 1:
                     gScreenDirty = 1;
                     gGameState = GAMESTATE_LANGUAGE_SELECT;
+                    Changed = 1;
                     break;
 
                 default:
@@ -276,18 +289,12 @@ static void GameState_HandleReleasedMainMenu(GameButton button){
 }
 
 static void GameState_DrawMainMenu(void){
-    ST7735_FillScreen(ST7735_BLACK);
+    if(Changed == 1){
+        ST7735_FillScreen(ST7735_BLACK);
+        Changed = 0;
+    }
     ST7735_DrawBitmap(0, 159, logo, 128, 80);
     if(gLanguage == LANGUAGE_ENGLISH){
-        ST7735_SetCursor(3, 1);
-        ST7735_OutString("Main Menu");
-
-        ST7735_SetCursor(2, 4);
-        ST7735_OutString(gMainMenuSelection == 0 ? "> Start Level 1" : "  Start Level 1");
-
-        ST7735_SetCursor(2, 6);
-        ST7735_OutString(gMainMenuSelection == 1 ? "> Language" : "  Language");
-    } else {
         ST7735_SetCursor(3, 1);
         ST7735_OutString("Main Menu");
 
@@ -295,21 +302,32 @@ static void GameState_DrawMainMenu(void){
         ST7735_OutString(gMainMenuSelection == 0 ? "> Level 1" : "  Level 1");
 
         ST7735_SetCursor(2, 6);
-        ST7735_OutString(gMainMenuSelection == 1 ? "> lenguaje" : "  lenguaje");
+        ST7735_OutString(gMainMenuSelection == 1 ? "> Language" : "  Language");
+    } else {
+        ST7735_SetCursor(3, 1);
+        char str[20];
+        sprintf(str, "Men%c principal", 0xA3);
+        ST7735_OutString(str);
+
+        ST7735_SetCursor(2, 4);
+        ST7735_OutString(gMainMenuSelection == 0 ? "> Nivel 1" : "  Nivel 1");
+
+        ST7735_SetCursor(2, 6);
+        ST7735_OutString(gMainMenuSelection == 1 ? "> Idioma" : "  Idioma");
     }
 }
 
-static void GameState_StartLevel1(void){
+static void GameState_StartINGAME(void){
     if(!gGameplayLoaded){
         entityArrInit(entList);
 ////WE NEED TO IMPLEMENT THESE FUNCTIONS. THEY ARE PLACEHOLDERS
-        //World_InitLevel1(world);
-        //Level1_SpawnEntities(entities, world);
-        //Level1_ResetPlayerPosition();
+        //World_InitINGAME(world);
+        //INGAME_SpawnEntities(entities, world);
+        //INGAME_ResetPlayerPosition();
         gGameplayLoaded = 1;
     }
 
-    gGameState = GAMESTATE_LEVEL1;
+    gGameState = GAMESTATE_INGAME;
 }
 
 // ------------------------------------------------------------

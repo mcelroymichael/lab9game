@@ -3,18 +3,19 @@
 
 #include <stdint.h>
 
-#define UP 0
-#define DOWN 1
-#define LEFT 2
-#define RIGHT 3
-#define A_BUTTON 4
-#define B_BUTTON 5
-
 typedef enum {
     GAMESTATE_LANGUAGE_SELECT = 0,
     GAMESTATE_MAIN_MENU,
-    GAMESTATE_LEVEL1
+    GAMESTATE_PAUSE_MENU,
+    GAMESTATE_INGAME
 } GameState;
+
+typedef enum {
+    LEVELSTATE_1 = 1,
+    LEVELSTATE_2,
+    LEVELSTATE_3,
+    LEVELSTATE_B
+} LevelState;
 
 typedef enum {
     LANGUAGE_ENGLISH = 0,
@@ -27,7 +28,9 @@ typedef enum {
     GAMEBUTTON_LEFT,
     GAMEBUTTON_RIGHT,
     GAMEBUTTON_A,
-    GAMEBUTTON_B
+    GAMEBUTTON_B,
+    GAMEBUTTON_ESC,
+    GAMEBUTTON_ALT
 } GameButton;
 
 void GameState_Init(void);
