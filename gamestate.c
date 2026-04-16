@@ -65,6 +65,10 @@ void GameState_Init(void){
     gGameplayLoaded = 0;
 }
 
+bool inGame(void){
+    return gGameplayLoaded;
+}
+
 GameState GameState_Get(void){
     return gGameState;
 }
@@ -102,6 +106,10 @@ void GameState_Update(void){
 }
 
 void GameState_Draw(void){
+    if(Changed == 1){
+        ST7735_FillScreen(ST7735_BLACK);
+        Changed = 0;
+    }
     switch(gGameState){
         case GAMESTATE_LANGUAGE_SELECT:
             if(gScreenDirty){
@@ -204,13 +212,6 @@ static void GameState_HandleReleasedLanguageSelect(GameButton button){
 }
 
 static void GameState_DrawLanguageSelect(void){
-    if(Changed == 1){
-        ST7735_FillScreen(ST7735_BLACK);
-        Changed = 0;
-    } else {
-        //ST7735_FillRect(int16_t x, int16_t y, 6, 8, ST7735_BLACK)
-    }
-
     if(gLanguage == LANGUAGE_ENGLISH){
         ST7735_SetCursor(2, 1);
         ST7735_OutString("Select Language   ");
@@ -289,10 +290,7 @@ static void GameState_HandleReleasedMainMenu(GameButton button){
 }
 
 static void GameState_DrawMainMenu(void){
-    if(Changed == 1){
-        ST7735_FillScreen(ST7735_BLACK);
-        Changed = 0;
-    }
+    
     ST7735_DrawBitmap(0, 159, logo, 128, 80);
     if(gLanguage == LANGUAGE_ENGLISH){
         ST7735_SetCursor(3, 1);
@@ -320,6 +318,23 @@ static void GameState_DrawMainMenu(void){
 static void GameState_StartINGAME(void){
     if(!gGameplayLoaded){
         entityArrInit(entList);
+        worldX = worldY = 0;
+        oldWorldX = oldWorldY = 255;
+        Room testRoom1, testRoom2, testRoom3, NULLROOM;
+        roomInit(&testRoom1, tilemap1);
+        roomInit(&testRoom2, tilemap2);
+        roomInit(&testRoom3, tilemap3);
+        roomInit(&NULLROOM, tilemap1);
+        worldInit(worldMap, &NULLROOM);
+        setWorld(worldMap, &testRoom1, 0, 0);
+        setWorld(worldMap, &testRoom2, 1, 0);
+        setWorld(worldMap, &testRoom3, 1, 1);
+        Entity *block = addEntity(entList);
+        player = block;
+        Entity_Init(block, 0, 0, 8, 8, PLAYER, happyBlock);
+        Entity_Activate(block);
+        
+
 ////WE NEED TO IMPLEMENT THESE FUNCTIONS. THEY ARE PLACEHOLDERS
         //World_InitINGAME(world);
         //INGAME_SpawnEntities(entities, world);
@@ -350,10 +365,9 @@ static void GameState_HandleReleasedGameplay(GameButton button){
 
 static void GameState_DrawGameplay(void){
     if(oldWorldX != worldX || oldWorldY != worldY){
-        drawRoom(worldMap, worldX, worldY);
-        oldWorldX = worldX;
-        oldWorldY = worldY;
+      drawRoom(worldMap, worldX, worldY);
+      oldWorldX = worldX;
+      oldWorldY = worldY;
     }
-
     drawEntities(entList, worldMap, worldX, worldY);
 }

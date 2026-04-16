@@ -212,7 +212,9 @@ void TIMG12_IRQHandler(void){uint32_t pos,msg;
     buttonState = Switch_In();
     handleButtons();
     // 3) move sprites
-    updateEntities(entList);
+    if(inGame()){
+      updateEntities(entList);
+    }
     // 4) start sounds
     // 5) set semaphore
     DRAWREADY = true;

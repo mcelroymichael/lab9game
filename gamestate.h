@@ -2,6 +2,7 @@
 #define GAMESTATE_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 typedef enum {
     GAMESTATE_LANGUAGE_SELECT = 0,
@@ -34,6 +35,7 @@ typedef enum {
 } GameButton;
 
 void GameState_Init(void);
+bool inGame(void);
 GameState GameState_Get(void);
 Language GameState_GetLanguage(void);
 void GameState_Set(GameState newState);

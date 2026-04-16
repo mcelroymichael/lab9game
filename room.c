@@ -2,7 +2,7 @@
 #include "../inc/ST7735.h"
 #include "graphics.h"
 
-void roomInit(Room* r, uint32_t* tilemap){
+void roomInit(Room* r, const uint32_t* tilemap){
     r->tilemap = tilemap;
 }
 
@@ -42,6 +42,6 @@ void setWorld(Room* world[MAXWORLD_SIZE][MAXWORLD_SIZE], Room* room,uint8_t x, u
   world[x][y] = room;
 }
 
-uint32_t* getTileMap(Room* world[MAXWORLD_SIZE][MAXWORLD_SIZE], uint8_t x, uint8_t y){
+const uint32_t* getTileMap(Room* world[MAXWORLD_SIZE][MAXWORLD_SIZE], uint8_t x, uint8_t y){
   return world[x][y]->tilemap;
 }
