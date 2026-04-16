@@ -275,20 +275,24 @@ int main(void){ // main testing
     //Entity_PrintSelf(block);
     //Entity_Update(Entity *e);
     if(!DRAWREADY) continue; //pass until draw flag is set
-    /*if(oldWorldX != worldX || oldWorldY != worldY){
-      drawRoom(worldMap, worldX, worldY);
-      oldWorldX = worldX;
-      oldWorldY = worldY;
-    }
-    drawEntities(entList, worldMap, worldX, worldY);
-    ST7735_SetCursor(0, 10);
-    ST7735_OutUDec(Switch_In());
+    if(!inGame()){
+      GameState_Draw();
+    }else {
+      if(oldWorldX != worldX || oldWorldY != worldY){
+        drawRoom(worldMap, worldX, worldY);
+        oldWorldX = worldX;
+        oldWorldY = worldY;
+      }
+      drawEntities(entList, worldMap, worldX, worldY);
+      ST7735_SetCursor(0, 10);
+      ST7735_OutUDec(Switch_In());
 
-    ST7735_SetCursor(2, 10);
-    ST7735_OutUDec(worldX);
-    ST7735_OutChar(' ');
-    ST7735_OutUDec(worldY);*/
-    GameState_Draw();
+      ST7735_SetCursor(2, 10);
+      ST7735_OutUDec(worldX);
+      ST7735_OutChar(' ');
+      ST7735_OutUDec(worldY);
+      
+    }
     
     DRAWREADY = false;
   }
