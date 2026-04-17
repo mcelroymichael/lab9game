@@ -7,6 +7,7 @@
 #define MAXENTITIES 10
 #define PLAYER 0
 #define ENEMY 1
+#define TELEPORTER 2
 
 
 extern const uint16_t NULLARR16[];

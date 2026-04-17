@@ -1,6 +1,7 @@
 #ifndef GRAPHICS_H
 
 #include "../inc/ST7735.h"
+#include "room.h"
 
 #define GRAPHICS_H
 
@@ -24,9 +25,22 @@ extern const uint16_t cat[256];
 extern const uint16_t greentile[144];
 extern const uint16_t redtile[144];
 extern const uint16_t bluetile[144];
+extern const uint16_t teleporter_Inctive[144];
+extern const uint16_t teleporter_Active[144];
 extern const uint16_t logo[10240];
 extern const uint32_t tilemap1[64];
 extern const uint32_t tilemap2[64];
 extern const uint32_t tilemap3[64];
+
+typedef struct{
+    uint8_t destinationWorldX;
+    uint8_t destinationWorldY;
+    uint8_t destinationPlayerX;
+    uint8_t destinationPlayerY;
+    uint8_t currentX;
+    uint8_t currentY;
+} TeleporterData;
+
+extern const TeleporterData teleportTable[MAXWORLD_SIZE][MAXWORLD_SIZE];
 
 #endif

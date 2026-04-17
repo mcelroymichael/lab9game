@@ -5,6 +5,7 @@
 #include "graphics.h"
 #include <stdio.h>
 #include <stdbool.h>
+#include "Switch.h"
 
 #define MENU_OPTION_COUNT 2
 #define LANGUAGE_OPTION_COUNT 2
@@ -19,6 +20,8 @@ static uint8_t gLanguageSelection = 0;
 static uint8_t gGameplayLoaded = 0;
 static uint8_t gScreenDirty = 1;
 static bool Changed = 0;
+
+static Room testRoom1, testRoom2, testRoom3, NULLROOM;
 
 // ------------------------------------------------------------
 // External gameplay objects/functions you already have or will add
@@ -266,7 +269,7 @@ static void GameState_HandlePressedMainMenu(GameButton button){
                 case 0:
                     gScreenDirty = 1;
                     GameState_StartINGAME();
-                    Changed = 1;
+                    ST7735_FillScreen(ST7735_BLACK);
                     break;
 
                 case 1:
@@ -320,7 +323,6 @@ static void GameState_StartINGAME(void){
         entityArrInit(entList);
         worldX = worldY = 0;
         oldWorldX = oldWorldY = 255;
-        Room testRoom1, testRoom2, testRoom3, NULLROOM;
         roomInit(&testRoom1, tilemap1);
         roomInit(&testRoom2, tilemap2);
         roomInit(&testRoom3, tilemap3);
@@ -333,12 +335,11 @@ static void GameState_StartINGAME(void){
         player = block;
         Entity_Init(block, 0, 0, 8, 8, PLAYER, happyBlock);
         Entity_Activate(block);
-        
 
-////WE NEED TO IMPLEMENT THESE FUNCTIONS. THEY ARE PLACEHOLDERS
-        //World_InitINGAME(world);
-        //INGAME_SpawnEntities(entities, world);
-        //INGAME_ResetPlayerPosition();
+        Entity *tp = addEntity(entList);
+        Entity_Init(tp, 6, 4, 12, 12, TELEPORTER, teleporter_Active);
+        Entity_Activate(tp);
+        
         gGameplayLoaded = 1;
     }
 
@@ -370,4 +371,13 @@ static void GameState_DrawGameplay(void){
       oldWorldY = worldY;
     }
     drawEntities(entList, worldMap, worldX, worldY);
+
+    ST7735_SetCursor(0, 10);
+    ST7735_OutUDec(Switch_In());
+
+    ST7735_SetCursor(3, 10);
+    ST7735_OutUDec(worldX);
+    ST7735_OutChar(' ');
+    ST7735_OutUDec(worldY);
+
 }

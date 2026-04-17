@@ -8,6 +8,9 @@
 #define TILE_SIZE      12
 #define BLOCKED_TILE   1u
 
+extern Entity* player;
+extern uint8_t worldX, worldY;
+
 static uint8_t Map_InBounds(int8_t col, int8_t row);
 static uint16_t Map_Index(uint8_t col, uint8_t row);
 static uint32_t Map_GetTile(const uint32_t* tilemap, uint8_t col, uint8_t row);
@@ -53,6 +56,36 @@ void Entity_Deactivate(Entity* e){
 // Grid movement should happen only through Entity_TryMove.
 void Entity_Update(Entity* e){
     if(!e || !e->active) return;
+    switch (e->type) {
+        
+        case PLAYER:
+            break;
+
+        case ENEMY:
+            break;
+        
+        case TELEPORTER: {
+            const TeleporterData* tpdata = &teleportTable[worldX][worldY];
+            if((e->tileX != tpdata->currentX) || (e->tileY != tpdata->currentY)){
+                e->tileX = tpdata->currentX;
+                e->tileY = tpdata->currentY;
+            }
+
+            if((player->tileX == e->tileX) && (player->tileY == e->tileY)){
+                const TeleporterData* nexttpdata = &teleportTable[tpdata->destinationWorldX][tpdata->destinationWorldY];
+                worldX = tpdata->destinationWorldX;
+                worldY = tpdata->destinationWorldY;
+                player->tileX = tpdata->destinationPlayerX;
+                player->tileY = tpdata->destinationPlayerY;
+                e->tileX = nexttpdata->currentX;
+                e->tileY = nexttpdata->currentY;
+            }
+            break;
+        }
+
+        default:
+            break;
+        }
 }
 
 // **********Entity_SetTilePosition*******************
