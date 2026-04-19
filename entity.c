@@ -71,6 +71,10 @@ void Entity_Update(Entity* e){
                 e->tileY = tpdata->currentY;
             }
 
+            if(e->data0 == 0){
+                break;
+            }
+
             if((player->tileX == e->tileX) && (player->tileY == e->tileY)){
                 const TeleporterData* nexttpdata = &teleportTable[tpdata->destinationWorldX][tpdata->destinationWorldY];
                 worldX = tpdata->destinationWorldX;

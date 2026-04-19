@@ -105,6 +105,14 @@ static void Gameplay_RedrawTile(uint8_t tileX, uint8_t tileY, uint8_t includeCur
 static void Gameplay_DrawCursor(void);
 static void Gameplay_DrawTargetMarker(void);
 static void Gameplay_DrawHealthBar(void);
+static void Gameplay_EndPlayerTurn(void);
+static void Gameplay_RunEnemyTurn(void);
+static void Gameplay_UpdateTeleporterState(void);
+static uint8_t Gameplay_IsPlayerAdjacentToEnemy(const Entity* enemy);
+static void Gameplay_EnemyTryMoveTowardsPlayer(Entity* enemy);
+static uint8_t Gameplay_IsTileOccupiedByEnemy(uint8_t tileX, uint8_t tileY, const Entity* ignoreEnemy);
+static uint8_t Gameplay_HasAliveEnemies(void);
+static void Gameplay_Shutdown(void);
 
 // ------------------------------------------------------------
 // Public API
@@ -389,11 +397,13 @@ static void GameState_StartINGAME(void){
 
         Entity *tp = addEntity(entList);
         Entity_Init(tp, 6, 4, 12, 12, TELEPORTER, teleporter_Active);
+        tp->data0 = 0;
+        Entity_SetBitmap(tp, teleporter_Inctive);
         Entity_Activate(tp);
 
         Entity *enemy = addEntity(entList);
         Entity_Init(enemy, 4, 2, 8, 8, ENEMY, blueBlock);
-        enemy->data0 = 5;
+        enemy->data0 = 10;
         enemy->data1 = 2;
         Entity_Activate(enemy);
 
@@ -401,6 +411,7 @@ static void GameState_StartINGAME(void){
     }
 
     Gameplay_InitTurnState();
+    Gameplay_UpdateTeleporterState();
     gNeedsFullGameplayRedraw = 1;
     gGameState = GAMESTATE_INGAME;
 }
@@ -446,7 +457,8 @@ static void GameState_HandlePressedGameplay(GameButton button){
             break;
 
         case GAMEBUTTON_ESC:
-            gGameState = GAMESTATE_MAIN_MENU;
+            Gameplay_Shutdown();
+            GameState_EnterMainMenu();
             break;
 
         default:
@@ -679,15 +691,20 @@ static void Gameplay_CommitMove(void){
 
 static void Gameplay_CommitAttack(void){
     uint8_t attackCost = (gSelectedAttackMove == PLAYERSTYLE_MELEE) ? 2 : 1;
+    uint8_t attackDamage = (gSelectedAttackMove == PLAYERSTYLE_MELEE) ? 4 : 2;
     Entity* target;
     if(gEnergyRemaining < attackCost) return;
     if(!Gameplay_CanAttackTarget()) return;
     target = Gameplay_FindAttackTargetAtCursor();
-    Entity_Deactivate(target);
+    if(!target) return;
+    if(attackDamage >= target->data0){
+        target->data0 = 0;
+        Entity_Deactivate(target);
+    } else {
+        target->data0 = target->data0 - attackDamage;
+    }
     gEnergyRemaining = gEnergyRemaining - attackCost;
-    gTurnMode = TURNMODE_MOVE;
-    Gameplay_ResetCursorToPlayer();
-    gNeedsFullGameplayRedraw = 1;
+    Gameplay_EndPlayerTurn();
 }
 
 static void Gameplay_DrawHUD(void){
@@ -832,9 +849,6 @@ static void Gameplay_RedrawTile(uint8_t tileX, uint8_t tileY, uint8_t includeCur
 static void Gameplay_DrawCursor(void){
     uint8_t cursorDrawX;
     uint8_t cursorDrawY;
-    if(gOldCursorX != 255 && (gOldCursorX != gCursorX || gOldCursorY != gCursorY)){
-        drawRoomTile(worldMap, worldX, worldY, gOldCursorX, gOldCursorY);
-    }
     cursorDrawX = (uint8_t)(gCursorX * 12 + 4);
     cursorDrawY = (uint8_t)(gCursorY * 12 + 7);
     ST7735_DrawBitmap(cursorDrawX, cursorDrawY, cursor, 4, 4);
@@ -870,4 +884,143 @@ static void Gameplay_DrawHealthBar(void){
     prevHealth = gPlayerHealth;
     prevHealthMax = gPlayerHealthMax;
     gForceHealthRedraw = 0;
+}
+
+static void Gameplay_EndPlayerTurn(void){
+    Gameplay_RunEnemyTurn();
+    gEnergyRemaining = gMovementEnergyMax;
+    gTurnMode = TURNMODE_MOVE;
+    Gameplay_ResetCursorToPlayer();
+    Gameplay_UpdateTeleporterState();
+    gForceHUDRedraw = 1;
+    gForceHealthRedraw = 1;
+    gNeedsFullGameplayRedraw = 1;
+}
+
+static void Gameplay_RunEnemyTurn(void){
+    uint8_t i;
+    for(i = 0; i < MAXENTITIES; i++){
+        Entity* enemy = &entList[i];
+        if(!enemy->active || enemy->type != ENEMY){
+            continue;
+        }
+        if(Gameplay_IsPlayerAdjacentToEnemy(enemy)){
+            uint8_t damage = (uint8_t)enemy->data1;
+            if(damage == 0){
+                damage = 1;
+            }
+            if(damage >= gPlayerHealth){
+                gPlayerHealth = 0;
+            } else {
+                gPlayerHealth = (uint8_t)(gPlayerHealth - damage);
+            }
+            continue;
+        }
+        Gameplay_EnemyTryMoveTowardsPlayer(enemy);
+    }
+}
+
+static void Gameplay_UpdateTeleporterState(void){
+    uint8_t i;
+    uint8_t unlocked = (uint8_t)!Gameplay_HasAliveEnemies();
+    for(i = 0; i < MAXENTITIES; i++){
+        if(!entList[i].active || entList[i].type != TELEPORTER){
+            continue;
+        }
+        entList[i].data0 = unlocked;
+        Entity_SetBitmap(&entList[i], unlocked ? teleporter_Active : teleporter_Inctive);
+    }
+}
+
+static uint8_t Gameplay_IsPlayerAdjacentToEnemy(const Entity* enemy){
+    int16_t dx;
+    int16_t dy;
+    if(!enemy){
+        return 0;
+    }
+    dx = (int16_t)enemy->tileX - player->tileX;
+    dy = (int16_t)enemy->tileY - player->tileY;
+    if(dx < 0) dx = -dx;
+    if(dy < 0) dy = -dy;
+    return (uint8_t)((dx + dy) == 1);
+}
+
+static void Gameplay_EnemyTryMoveTowardsPlayer(Entity* enemy){
+    int8_t stepX = 0;
+    int8_t stepY = 0;
+    uint8_t nextX;
+    uint8_t nextY;
+    if(!enemy) return;
+
+    if(enemy->tileX < player->tileX){
+        stepX = 1;
+    } else if(enemy->tileX > player->tileX){
+        stepX = -1;
+    }
+
+    if(stepX != 0){
+        nextX = (uint8_t)((int8_t)enemy->tileX + stepX);
+        nextY = enemy->tileY;
+        if(!Gameplay_IsTileOccupiedByEnemy(nextX, nextY, enemy) &&
+           !(nextX == player->tileX && nextY == player->tileY) &&
+           Gameplay_IsTileTraversableForMove(nextX, nextY)){
+            enemy->tileX = nextX;
+            return;
+        }
+    }
+
+    if(enemy->tileY < player->tileY){
+        stepY = 1;
+    } else if(enemy->tileY > player->tileY){
+        stepY = -1;
+    }
+
+    if(stepY != 0){
+        nextX = enemy->tileX;
+        nextY = (uint8_t)((int8_t)enemy->tileY + stepY);
+        if(!Gameplay_IsTileOccupiedByEnemy(nextX, nextY, enemy) &&
+           !(nextX == player->tileX && nextY == player->tileY) &&
+           Gameplay_IsTileTraversableForMove(nextX, nextY)){
+            enemy->tileY = nextY;
+        }
+    }
+}
+
+static uint8_t Gameplay_IsTileOccupiedByEnemy(uint8_t tileX, uint8_t tileY, const Entity* ignoreEnemy){
+    uint8_t i;
+    for(i = 0; i < MAXENTITIES; i++){
+        if(!entList[i].active || entList[i].type != ENEMY){
+            continue;
+        }
+        if(&entList[i] == ignoreEnemy){
+            continue;
+        }
+        if(entList[i].tileX == tileX && entList[i].tileY == tileY){
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static uint8_t Gameplay_HasAliveEnemies(void){
+    uint8_t i;
+    for(i = 0; i < MAXENTITIES; i++){
+        if(entList[i].active && entList[i].type == ENEMY){
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static void Gameplay_Shutdown(void){
+    uint8_t i;
+    for(i = 0; i < MAXENTITIES; i++){
+        Entity_Deactivate(&entList[i]);
+    }
+    gGameplayLoaded = 0;
+    gNeedsFullGameplayRedraw = 1;
+    gForceHUDRedraw = 1;
+    gForceHealthRedraw = 1;
+    oldWorldX = 255;
+    oldWorldY = 255;
 }
