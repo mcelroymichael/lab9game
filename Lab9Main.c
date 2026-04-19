@@ -99,7 +99,7 @@ void handleButtons(void){
           }
         }
     }
-    if(((buttonState >> 1) & 0b1) != oldButtonState){                  // RIGHT
+    if(((buttonState >> 1) & 0b1) != (oldButtonState >> 1)){                  // RIGHT
         if(((buttonState >> 1) & 0b1) == 1){ //RISING EDGE DETECTION
           if(inMenu){
             GameState_OnButtonPressed(GAMEBUTTON_RIGHT);
@@ -120,7 +120,7 @@ void handleButtons(void){
           }
         }
     }
-    if(((buttonState >> 2) & 0b1) != (oldButtonState >> 1)){    // DOWN
+    if(((buttonState >> 2) & 0b1) != (oldButtonState >> 2)){    // DOWN
         if(((buttonState >> 2) & 0b1) == 1){ //RISING EDGE DETECTION
           if(inMenu){
             GameState_OnButtonPressed(GAMEBUTTON_DOWN);
@@ -142,7 +142,7 @@ void handleButtons(void){
           }
       }
     }
-    if(((buttonState >> 3) & 0b1) != (oldButtonState >> 2)){    // LEFT
+    if(((buttonState >> 3) & 0b1) != (oldButtonState >> 3)){    // LEFT
         if(((buttonState >> 3) & 0b1) == 1){ //RISING EDGE DETECTION
           if(inMenu){
             GameState_OnButtonPressed(GAMEBUTTON_LEFT);
@@ -163,7 +163,7 @@ void handleButtons(void){
           }
       }
     }
-    if(((buttonState >> 4) & 0b1) != (oldButtonState >> 3)){    // UP
+    if(((buttonState >> 4) & 0b1) != (oldButtonState >> 4)){    // UP
         if(((buttonState >> 4) & 0b1) == 1){ //RISING EDGE DETECTION
           if(inMenu){
             GameState_OnButtonPressed(GAMEBUTTON_UP);
@@ -183,17 +183,61 @@ void handleButtons(void){
 
           }
       }
-    if(((buttonState >> 1) & 0b1111) != (oldButtonState)){    // ALL
-        if(((buttonState >> 1) & 0b1111) == 0b1111){ //RISING EDGE DETECTION
-          //worldY = (worldY+1) %2;
-          worldX = (worldX +1)% MAXWORLD_SIZE;
-          worldY = (worldY +1)% MAXWORLD_SIZE;
-
+    }
+      if(((buttonState >> 5) & 0b1) != (oldButtonState >> 5)){    //B
+        if(((buttonState >> 5) & 0b1) == 1){ //RISING EDGE DETECTION
+          if(inMenu){
+            GameState_OnButtonPressed(GAMEBUTTON_UP);
+          } else{
+            status = Entity_TryMove(player, 0, -1, getTileMap(worldMap, worldX, worldY));
+            if(status == 2) {
+              if((worldY - 1) >= 0){
+                worldY = worldY - 1;
+                Entity_SetTilePosition(player, player->tileX, 7);
+              }
+            }
+          }
         } else {                      //FALLING EDGE
-          
+          if(inMenu){
+            GameState_OnButtonReleased(GAMEBUTTON_UP);
+          } else{
+
+          }
       }
     }
-  }
+      if(((buttonState >> 6) & 0b1) != (oldButtonState >> 6)){    // ALT
+        if(((buttonState >> 6) & 0b1) == 1){ //RISING EDGE DETECTION
+          if(inMenu){
+            GameState_OnButtonPressed(GAMEBUTTON_UP);
+          } else{
+            status = Entity_TryMove(player, 0, -1, getTileMap(worldMap, worldX, worldY));
+            if(status == 2) {
+              if((worldY - 1) >= 0){
+                worldY = worldY - 1;
+                Entity_SetTilePosition(player, player->tileX, 7);
+              }
+            }
+          }
+        } else {                      //FALLING EDGE
+          if(inMenu){
+            GameState_OnButtonReleased(GAMEBUTTON_UP);
+          } else{
+
+          }
+      }
+    }
+      if(((buttonState >> 7) & 0b1) != (oldButtonState >> 7)){    // ESC
+        if(((buttonState >> 7) & 0b1) == 1){ //RISING EDGE DETECTION
+          if(inMenu){
+            
+          } else{
+            
+          }
+        } else {                      //FALLING EDGE
+          
+          
+          }
+      }
   
   oldButtonState = buttonState;
   }
@@ -206,16 +250,17 @@ void TIMG12_IRQHandler(void){uint32_t pos,msg;
     GPIOB->DOUTTGL31_0 = GREEN; // toggle PB27 (minimally intrusive debugging)
 // game engine goes here
   if(DRAWREADY) return; //Don't run interrupt if the frame hasnt been drawn yet.
-    // 1) sample slide pot
-    potState = ADCin();
-    // 2) read input switches
-    buttonState = Switch_In();
+    
+    potState = ADCin();         // 1) sample slide pot
+    
+    buttonState = Switch_In();  // 2) read input switches
     handleButtons();
-    // 3) move sprites
-    updateEntities(entList);
-    // 4) start sounds
-    // 5) set semaphore
-    DRAWREADY = true;
+    
+    updateEntities(entList);    // 3) move sprites
+    
+  //manageSounds();             // 4) start sounds
+    
+    DRAWREADY = true;           // 5) set semaphore
     // NO LCD OUTPUT IN INTERRUPT SERVICE ROUTINES
 
     GPIOB->DOUTTGL31_0 = GREEN; // toggle PB27 (minimally intrusive debugging)
@@ -237,55 +282,17 @@ int main(void){ // main testing
     // ST7735_InitR(INITR_REDTAB); inside ST7735_InitPrintf()
   ST7735_FillScreen(ST7735_BLACK);
   
-  /*entityArrInit(entList);
-
-  Entity *block = addEntity(entList);
-  player = block;
-  Entity_Init(block, 0, 0, 8, 8, PLAYER, happyBlock);
-  Entity_Activate(block);
-
-  //Entity *block2 = addEntity(entList);
-  //Entity_Init(block2, 80, 30, 8, 8, ENEMY, happyBlock, testMap);
-  //Entity_Activate(block2);
-*/
   GameState_Init();
   buttonState = oldButtonState = 0;
-  /*worldX = worldY = 0;
-  oldWorldX = oldWorldY = 255;
-  
-  Room testRoom1, testRoom2, testRoom3, NULLROOM;
-  roomInit(&testRoom1, tilemap1);
-  roomInit(&testRoom2, tilemap2);
-  roomInit(&testRoom3, tilemap3);
-  roomInit(&NULLROOM, tilemap1);
-  worldInit(worldMap, &NULLROOM);
-  setWorld(worldMap, &testRoom1, 0, 0);
-  setWorld(worldMap, &testRoom2, 1, 0);
-  setWorld(worldMap, &testRoom3, 1, 1);*/
-
 
   DRAWREADY = false;              //initialize draw flag
   TimerG12_IntArm(80000000/30,2);
   __enable_irq();
 
   while(1){
-    //Entity_Update(block);
-    //Entity_PrintSelf(block);
-    //Entity_Update(Entity *e);
+    
     if(!DRAWREADY) continue; //pass until draw flag is set
-    /*if(oldWorldX != worldX || oldWorldY != worldY){
-      drawRoom(worldMap, worldX, worldY);
-      oldWorldX = worldX;
-      oldWorldY = worldY;
-    }
-    drawEntities(entList, worldMap, worldX, worldY);
-    ST7735_SetCursor(0, 10);
-    ST7735_OutUDec(Switch_In());
-
-    ST7735_SetCursor(2, 10);
-    ST7735_OutUDec(worldX);
-    ST7735_OutChar(' ');
-    ST7735_OutUDec(worldY);*/
+    
     GameState_Draw();
     
     DRAWREADY = false;
