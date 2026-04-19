@@ -68,6 +68,7 @@ static uint8_t gEnemyTurnSummaryDirty = 1;
 static uint8_t gCurrentStage = 1;
 static uint8_t gStageLoadedWorldX = 255;
 static uint8_t gStageLoadedWorldY = 255;
+static uint8_t gPlayerWon = 0;
 
 // ------------------------------------------------------------
 // External gameplay objects/functions you already have or will add
@@ -96,6 +97,7 @@ static void GameState_DrawMainMenu(void);
 static void GameState_DrawGameplay(void);
 static void GameState_DrawEnding(void);
 static void GameState_EnterMainMenu(void);
+static void GameState_EnterEnding(uint8_t playerWon);
 static void GameState_StartINGAME(void);
 static void GameState_HandlePressedLanguageSelect(GameButton button);
 static void GameState_HandlePressedMainMenu(GameButton button);
@@ -447,6 +449,7 @@ static void GameState_StartINGAME(void){
         gGameplayLoaded = 1;
     }
 
+    gPlayerHealth = gPlayerHealthMax;
     gCurrentStage = 1;
     Gameplay_LoadStage(gCurrentStage);
     gStageLoadedWorldX = worldX;
@@ -528,12 +531,17 @@ static void GameState_HandleReleasedEnding(GameButton button){
     (void)button;
 }
 
+static void GameState_EnterEnding(uint8_t playerWon){
+    gPlayerWon = playerWon ? 1u : 0u;
+    gGameState = GAMESTATE_ENDING;
+    gScreenDirty = 1;
+    Changed = 1;
+}
+
 static void GameState_DrawGameplay(void){
     if(gStageLoadedWorldX != worldX || gStageLoadedWorldY != worldY){
         if(gCurrentStage >= 3){
-            gGameState = GAMESTATE_ENDING;
-            gScreenDirty = 1;
-            Changed = 1;
+            GameState_EnterEnding(1);
             return;
         }
         gCurrentStage++;
@@ -858,8 +866,6 @@ static void Gameplay_DrawHUD(void){
     static uint8_t prevEnemyPresent = 255;
     static uint8_t prevEnemyHP = 255;
     static uint8_t prevEnemyATK = 255;
-    static uint32_t prevADC = 0xFFFFFFFFu;
-    static uint32_t prevADCCm = 0xFFFFFFFFu;
     uint8_t previewEnergy;
     uint8_t modeEnergy;
     Entity* hoveredEnemy = Gameplay_FindAttackTargetAtCursor();
@@ -877,9 +883,7 @@ static void Gameplay_DrawHUD(void){
        prevPreview == previewEnergy &&
        prevEnemyPresent == enemyPresent &&
        prevEnemyHP == enemyHP &&
-       prevEnemyATK == enemyATK &&
-       prevADC == gLatestADC &&
-       prevADCCm == gLatestADCCm){
+       prevEnemyATK == enemyATK){
         return;
     }
 
@@ -924,8 +928,6 @@ static void Gameplay_DrawHUD(void){
     prevEnemyPresent = enemyPresent;
     prevEnemyHP = enemyHP;
     prevEnemyATK = enemyATK;
-    prevADC = gLatestADC;
-    prevADCCm = gLatestADCCm;
     ST7735_SetCursor(0, 13);
     ST7735_OutString("Lv:");
     ST7735_OutUDec(gCurrentStage);
@@ -1064,6 +1066,10 @@ static void Gameplay_DrawHealthBar(void){
 
 static void Gameplay_EndPlayerTurn(void){
     Gameplay_RunEnemyTurn();
+    if(gPlayerHealth == 0){
+        GameState_EnterEnding(0);
+        return;
+    }
     gEnemyTurnSummaryVisible = 1;
     gEnemyTurnSummaryDirty = 1;
     gAwaitingEnemyTurnAck = 1;
@@ -1321,9 +1327,15 @@ static void Gameplay_Shutdown(void){
 static void GameState_DrawEnding(void){
     ST7735_FillScreen(ST7735_BLACK);
     ST7735_SetCursor(3, 4);
-    ST7735_OutString("You escaped!");
-    ST7735_SetCursor(1, 7);
-    ST7735_OutString("All 3 levels clear");
+    if(gPlayerWon){
+        ST7735_OutString("You escaped!");
+        ST7735_SetCursor(1, 7);
+        ST7735_OutString("All 3 levels clear");
+    } else {
+        ST7735_OutString("You died!");
+        ST7735_SetCursor(1, 7);
+        ST7735_OutString("Health dropped to 0");
+    }
     ST7735_SetCursor(1, 10);
     ST7735_OutString("Press A for menu");
 }
