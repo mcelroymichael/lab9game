@@ -932,7 +932,7 @@ static void Gameplay_DrawHealthBar(void){
     if(!gForceHealthRedraw && prevHealth == gPlayerHealth && prevHealthMax == gPlayerHealthMax){
         return;
     }
-    ST7735_SetCursor(16, 0);
+    ST7735_SetCursor(18, 0);
     ST7735_OutString("HP");
     for(i = 0; i < gPlayerHealthMax; i++){
         uint8_t y = (uint8_t)(barStartY - (i * 8));
