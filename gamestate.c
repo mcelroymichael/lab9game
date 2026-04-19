@@ -785,10 +785,11 @@ static void Gameplay_DrawHUD(void){
         return;
     }
 
-    Gameplay_ClearHUDRow(9);
-    Gameplay_ClearHUDRow(10);
-    Gameplay_ClearHUDRow(11);
-    ST7735_SetCursor(0, 10);
+    Gameplay_ClearHUDRow(12);
+    Gameplay_ClearHUDRow(13);
+    Gameplay_ClearHUDRow(14);
+    Gameplay_ClearHUDRow(15);
+    ST7735_SetCursor(0, 13);
     if(gTurnMode == TURNMODE_MOVE){
         ST7735_OutString("Move mode");
     } else {
@@ -796,13 +797,13 @@ static void Gameplay_DrawHUD(void){
         ST7735_OutString((gSelectedAttackMove == PLAYERSTYLE_MELEE) ? "Melee " : "Range ");
     }
     if(gTurnMode == TURNMODE_ATTACK && hoveredEnemy){
-        ST7735_SetCursor(0, 9);
+        ST7735_SetCursor(0, 12);
         ST7735_OutString("Enemy HP:");
         ST7735_OutUDec(hoveredEnemy->data0);
         ST7735_OutString(" ATK:");
         ST7735_OutUDec(hoveredEnemy->data1);
     }
-    ST7735_SetCursor(0, 11);
+    ST7735_SetCursor(0, 14);
     ST7735_OutString("E:");
     ST7735_OutUDec(gEnergyRemaining);
     ST7735_OutString("->");
