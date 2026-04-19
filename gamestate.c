@@ -417,18 +417,17 @@ static void GameState_DrawMainMenu(void){
         ST7735_OutString("Main Menu");
 
         ST7735_SetCursor(2, 4);
-        ST7735_OutString(gMainMenuSelection == 0 ? "> Level 1" : "  Level 1");
+        ST7735_OutString(gMainMenuSelection == 0 ? "> Start Game" : "  Start Game");
 
         ST7735_SetCursor(2, 6);
         ST7735_OutString(gMainMenuSelection == 1 ? "> Language" : "  Language");
     } else {
         ST7735_SetCursor(3, 1);
         char str[20];
-        sprintf(str, "Men%c principal", 0xA3);
-        ST7735_OutString(str);
+        ST7735_OutString("Menu Principal");
 
         ST7735_SetCursor(2, 4);
-        ST7735_OutString(gMainMenuSelection == 0 ? "> Nivel 1" : "  Nivel 1");
+        ST7735_OutString(gMainMenuSelection == 0 ? "> Iniciar Juego" : "  Iniciar Juego");
 
         ST7735_SetCursor(2, 6);
         ST7735_OutString(gMainMenuSelection == 1 ? "> Idioma" : "  Idioma");
