@@ -55,6 +55,9 @@ static uint8_t gEnemyTurnHPAfter = 0;
 static uint8_t gEnemyTurnDamageTaken = 0;
 static uint8_t gEnemyTurnEnemiesMoved = 0;
 static uint8_t gEnemyTurnEnemiesAttacked = 0;
+static uint8_t gCurrentStage = 1;
+static uint8_t gStageLoadedWorldX = 255;
+static uint8_t gStageLoadedWorldY = 255;
 
 // ------------------------------------------------------------
 // External gameplay objects/functions you already have or will add
@@ -117,6 +120,9 @@ static void Gameplay_RunEnemyTurn(void);
 static void Gameplay_DrawEnemyTurnSummary(void);
 static void Gameplay_AcknowledgeEnemyTurnSummary(void);
 static void Gameplay_UpdateTeleporterState(void);
+static void Gameplay_LoadStage(uint8_t stage);
+static void Gameplay_ClearEnemies(void);
+static void Gameplay_SpawnEnemyAt(uint8_t tileX, uint8_t tileY, uint8_t hp, uint8_t attackPower);
 static uint8_t Gameplay_IsPlayerAdjacentToEnemy(const Entity* enemy);
 static void Gameplay_EnemyTryMoveTowardsPlayer(Entity* enemy);
 static uint8_t Gameplay_IsTileOccupiedByEnemy(uint8_t tileX, uint8_t tileY, const Entity* ignoreEnemy);
@@ -410,15 +416,13 @@ static void GameState_StartINGAME(void){
         Entity_SetBitmap(tp, teleporter_Inactive);
         Entity_Activate(tp);
 
-        Entity *enemy = addEntity(entList);
-        Entity_Init(enemy, 4, 2, 8, 8, ENEMY, enemy1);
-        enemy->data0 = 10;
-        enemy->data1 = 2;
-        Entity_Activate(enemy);
-
         gGameplayLoaded = 1;
     }
 
+    gCurrentStage = 1;
+    Gameplay_LoadStage(gCurrentStage);
+    gStageLoadedWorldX = worldX;
+    gStageLoadedWorldY = worldY;
     Gameplay_InitTurnState();
     Gameplay_UpdateTeleporterState();
     gNeedsFullGameplayRedraw = 1;
@@ -487,6 +491,16 @@ static void GameState_HandleReleasedGameplay(GameButton button){
 }
 
 static void GameState_DrawGameplay(void){
+    if(gStageLoadedWorldX != worldX || gStageLoadedWorldY != worldY){
+        gCurrentStage++;
+        Gameplay_LoadStage(gCurrentStage);
+        gStageLoadedWorldX = worldX;
+        gStageLoadedWorldY = worldY;
+        Gameplay_InitTurnState();
+        Gameplay_UpdateTeleporterState();
+        gNeedsFullGameplayRedraw = 1;
+    }
+
     uint8_t cursorMoved = (uint8_t)(gOldCursorX != gCursorX || gOldCursorY != gCursorY);
     if(gNeedsFullGameplayRedraw || oldWorldX != worldX || oldWorldY != worldY){
       drawRoom(worldMap, worldX, worldY);
@@ -730,7 +744,11 @@ static void Gameplay_CommitAttack(void){
         target->data0 = target->data0 - attackDamage;
     }
     gEnergyRemaining = gEnergyRemaining - attackCost;
-    Gameplay_EndPlayerTurn();
+    if(gEnergyRemaining == 0){
+        Gameplay_EndPlayerTurn();
+        return;
+    }
+    gNeedsFullGameplayRedraw = 1;
 }
 
 static void Gameplay_DrawHUD(void){
@@ -969,21 +987,30 @@ static void Gameplay_RunEnemyTurn(void){
 }
 
 static void Gameplay_DrawEnemyTurnSummary(void){
-    ST7735_SetCursor(0, 9);
-    ST7735_OutString("Enemy turn done ");
-    ST7735_SetCursor(0, 10);
-    ST7735_OutString("HP:");
+    ST7735_SetCursor(0, 12);
+    ST7735_OutString("                ");
+    ST7735_SetCursor(0, 13);
+    ST7735_OutString("                ");
+    ST7735_SetCursor(0, 14);
+    ST7735_OutString("                ");
+    ST7735_SetCursor(0, 15);
+    ST7735_OutString("                ");
+    ST7735_SetCursor(0, 12);
+    ST7735_OutString("Enemy phase");
+    ST7735_SetCursor(0, 13);
+    ST7735_OutString("PlayerHP:");
     ST7735_OutUDec(gEnemyTurnHPBefore);
     ST7735_OutString("->");
     ST7735_OutUDec(gEnemyTurnHPAfter);
-    ST7735_OutString(" D:");
+    ST7735_SetCursor(0, 14);
+    ST7735_OutString("DmgTaken:");
     ST7735_OutUDec(gEnemyTurnDamageTaken);
-    ST7735_SetCursor(0, 11);
-    ST7735_OutString("A:");
+    ST7735_OutString(" Hits:");
     ST7735_OutUDec(gEnemyTurnEnemiesAttacked);
-    ST7735_OutString(" M:");
+    ST7735_OutString(" Move:");
     ST7735_OutUDec(gEnemyTurnEnemiesMoved);
-    ST7735_OutString(" A=OK");
+    ST7735_SetCursor(0, 15);
+    ST7735_OutString("Press A for turn");
 }
 
 static void Gameplay_AcknowledgeEnemyTurnSummary(void){
@@ -996,6 +1023,45 @@ static void Gameplay_AcknowledgeEnemyTurnSummary(void){
     gForceHUDRedraw = 1;
     gForceHealthRedraw = 1;
     gNeedsFullGameplayRedraw = 1;
+}
+
+static void Gameplay_LoadStage(uint8_t stage){
+    uint8_t stageBucket = (uint8_t)((stage - 1) % 3);
+    Gameplay_ClearEnemies();
+
+    if(stageBucket == 0){
+        Gameplay_SpawnEnemyAt(4, 2, 8, 1);   // scout
+        Gameplay_SpawnEnemyAt(2, 5, 10, 2);  // skirmisher
+    } else if(stageBucket == 1){
+        Gameplay_SpawnEnemyAt(5, 2, 10, 2);  // skirmisher
+        Gameplay_SpawnEnemyAt(2, 2, 7, 1);   // scout
+        Gameplay_SpawnEnemyAt(4, 6, 12, 3);  // bruiser
+    } else {
+        Gameplay_SpawnEnemyAt(1, 2, 8, 1);   // scout
+        Gameplay_SpawnEnemyAt(6, 2, 9, 2);   // skirmisher
+        Gameplay_SpawnEnemyAt(2, 6, 12, 3);  // bruiser
+        Gameplay_SpawnEnemyAt(5, 6, 14, 4);  // elite bruiser
+    }
+}
+
+static void Gameplay_ClearEnemies(void){
+    uint8_t i;
+    for(i = 0; i < MAXENTITIES; i++){
+        if(entList[i].active && entList[i].type == ENEMY){
+            Entity_Deactivate(&entList[i]);
+        }
+    }
+}
+
+static void Gameplay_SpawnEnemyAt(uint8_t tileX, uint8_t tileY, uint8_t hp, uint8_t attackPower){
+    Entity* enemy = addEntity(entList);
+    if(!enemy){
+        return;
+    }
+    Entity_Init(enemy, tileX, tileY, 8, 8, ENEMY, enemy1);
+    enemy->data0 = hp;
+    enemy->data1 = attackPower;
+    Entity_Activate(enemy);
 }
 
 static void Gameplay_UpdateTeleporterState(void){
@@ -1099,6 +1165,9 @@ static void Gameplay_Shutdown(void){
     gNeedsFullGameplayRedraw = 1;
     gForceHUDRedraw = 1;
     gForceHealthRedraw = 1;
+    gCurrentStage = 1;
+    gStageLoadedWorldX = 255;
+    gStageLoadedWorldY = 255;
     oldWorldX = 255;
     oldWorldY = 255;
 }
