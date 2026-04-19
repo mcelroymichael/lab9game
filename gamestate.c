@@ -398,7 +398,7 @@ static void GameState_StartINGAME(void){
         Entity *tp = addEntity(entList);
         Entity_Init(tp, 6, 4, 12, 12, TELEPORTER, teleporter_Active);
         tp->data0 = 0;
-        Entity_SetBitmap(tp, teleporter_Inctive);
+        Entity_SetBitmap(tp, teleporter_Inactive);
         Entity_Activate(tp);
 
         Entity *enemy = addEntity(entList);
@@ -928,7 +928,7 @@ static void Gameplay_UpdateTeleporterState(void){
             continue;
         }
         entList[i].data0 = unlocked;
-        Entity_SetBitmap(&entList[i], unlocked ? teleporter_Active : teleporter_Inctive);
+        Entity_SetBitmap(&entList[i], unlocked ? teleporter_Active : teleporter_Inactive);
     }
 }
 
