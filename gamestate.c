@@ -85,6 +85,7 @@ extern void INGAME_ResetPlayerPosition(void);
 static void GameState_DrawLanguageSelect(void);
 static void GameState_DrawMainMenu(void);
 static void GameState_DrawGameplay(void);
+static void GameState_DrawEnding(void);
 static void GameState_EnterMainMenu(void);
 static void GameState_StartINGAME(void);
 static void GameState_HandlePressedLanguageSelect(GameButton button);
@@ -93,6 +94,8 @@ static void GameState_HandlePressedGameplay(GameButton button);
 static void GameState_HandleReleasedLanguageSelect(GameButton button);
 static void GameState_HandleReleasedMainMenu(GameButton button);
 static void GameState_HandleReleasedGameplay(GameButton button);
+static void GameState_HandlePressedEnding(GameButton button);
+static void GameState_HandleReleasedEnding(GameButton button);
 static void Gameplay_InitTurnState(void);
 static void Gameplay_SetStyle(PlayerStyle style);
 static void Gameplay_ResetCursorToPlayer(void);
@@ -205,6 +208,12 @@ void GameState_Draw(void){
         case GAMESTATE_INGAME:
             GameState_DrawGameplay();
             break;
+        case GAMESTATE_ENDING:
+            if(gScreenDirty){
+                GameState_DrawEnding();
+                gScreenDirty = 0;
+            }
+            break;
 
         default:
             break;
@@ -224,6 +233,9 @@ void GameState_OnButtonPressed(GameButton button){
         case GAMESTATE_INGAME:
             GameState_HandlePressedGameplay(button);
             break;
+        case GAMESTATE_ENDING:
+            GameState_HandlePressedEnding(button);
+            break;
 
         default:
             break;
@@ -242,6 +254,9 @@ void GameState_OnButtonReleased(GameButton button){
 
         case GAMESTATE_INGAME:
             GameState_HandleReleasedGameplay(button);
+            break;
+        case GAMESTATE_ENDING:
+            GameState_HandleReleasedEnding(button);
             break;
 
         default:
@@ -492,8 +507,25 @@ static void GameState_HandleReleasedGameplay(GameButton button){
     (void)button;
 }
 
+static void GameState_HandlePressedEnding(GameButton button){
+    if(button == GAMEBUTTON_A || button == GAMEBUTTON_ESC){
+        Gameplay_Shutdown();
+        GameState_EnterMainMenu();
+    }
+}
+
+static void GameState_HandleReleasedEnding(GameButton button){
+    (void)button;
+}
+
 static void GameState_DrawGameplay(void){
     if(gStageLoadedWorldX != worldX || gStageLoadedWorldY != worldY){
+        if(gCurrentStage >= 3){
+            gGameState = GAMESTATE_ENDING;
+            gScreenDirty = 1;
+            Changed = 1;
+            return;
+        }
         gCurrentStage++;
         Gameplay_LoadStage(gCurrentStage);
         gStageLoadedWorldX = worldX;
@@ -746,6 +778,7 @@ static void Gameplay_CommitAttack(void){
     } else {
         target->data0 = target->data0 - attackDamage;
     }
+    Gameplay_UpdateTeleporterState();
     gEnergyRemaining = gEnergyRemaining - attackCost;
     if(gEnergyRemaining == 0){
         Gameplay_EndPlayerTurn();
@@ -794,6 +827,10 @@ static void Gameplay_DrawHUD(void){
     Gameplay_ClearHUDRow(18);
     Gameplay_ClearHUDRow(19);
     Gameplay_ClearHUDRow(20);
+    ST7735_SetCursor(0, 20);
+    ST7735_OutString("Lvl:");
+    ST7735_OutUDec(gCurrentStage);
+    ST7735_OutString("/3");
     ST7735_SetCursor(0, 13);
     if(gTurnMode == TURNMODE_MOVE){
         ST7735_OutString("Move mode");
@@ -1196,4 +1233,14 @@ static void Gameplay_Shutdown(void){
     gStageLoadedWorldY = 255;
     oldWorldX = 255;
     oldWorldY = 255;
+}
+
+static void GameState_DrawEnding(void){
+    ST7735_FillScreen(ST7735_BLACK);
+    ST7735_SetCursor(3, 4);
+    ST7735_OutString("You escaped!");
+    ST7735_SetCursor(1, 7);
+    ST7735_OutString("All 3 levels clear");
+    ST7735_SetCursor(1, 10);
+    ST7735_OutString("Press A for menu");
 }
