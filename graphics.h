@@ -25,7 +25,7 @@ extern const uint16_t cat[256];
 extern const uint16_t greentile[144];
 extern const uint16_t redtile[144];
 extern const uint16_t bluetile[144];
-extern const uint16_t teleporter_Inctive[144];
+extern const uint16_t teleporter_Inactive[144];
 extern const uint16_t teleporter_Active[144];
 extern const uint16_t happyBlue[64];
 extern const uint16_t meleeIcon[48];
