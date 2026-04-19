@@ -857,6 +857,8 @@ static void Gameplay_DrawHUD(void){
     static uint8_t prevEnemyPresent = 255;
     static uint8_t prevEnemyHP = 255;
     static uint8_t prevEnemyATK = 255;
+    static uint32_t prevADC = 0xFFFFFFFFu;
+    static uint32_t prevADCCm = 0xFFFFFFFFu;
     uint8_t previewEnergy;
     uint8_t modeEnergy;
     Entity* hoveredEnemy = Gameplay_FindAttackTargetAtCursor();
@@ -874,7 +876,9 @@ static void Gameplay_DrawHUD(void){
        prevPreview == previewEnergy &&
        prevEnemyPresent == enemyPresent &&
        prevEnemyHP == enemyHP &&
-       prevEnemyATK == enemyATK){
+       prevEnemyATK == enemyATK &&
+       prevADC == gLatestADC &&
+       prevADCCm == gLatestADCCm){
         return;
     }
 
@@ -919,6 +923,8 @@ static void Gameplay_DrawHUD(void){
     prevEnemyPresent = enemyPresent;
     prevEnemyHP = enemyHP;
     prevEnemyATK = enemyATK;
+    prevADC = gLatestADC;
+    prevADCCm = gLatestADCCm;
     ST7735_SetCursor(0, 16);
     ST7735_OutString("Lv:");
     ST7735_OutUDec(gCurrentStage);
