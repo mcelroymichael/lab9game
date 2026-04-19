@@ -414,23 +414,11 @@ static void GameState_HandlePressedGameplay(GameButton button){
             break;
 
         case GAMEBUTTON_LEFT:
-            if(gTurnMode == TURNMODE_ATTACK){
-                gSelectedAttackMove = PLAYERSTYLE_MELEE;
-                Gameplay_SetStyle((PlayerStyle)gSelectedAttackMove);
-                gNeedsFullGameplayRedraw = 1;
-            } else {
-                Gameplay_CursorMove(-1, 0);
-            }
+            Gameplay_CursorMove(-1, 0);
             break;
 
         case GAMEBUTTON_RIGHT:
-            if(gTurnMode == TURNMODE_ATTACK){
-                gSelectedAttackMove = PLAYERSTYLE_RANGED;
-                Gameplay_SetStyle((PlayerStyle)gSelectedAttackMove);
-                gNeedsFullGameplayRedraw = 1;
-            } else {
-                Gameplay_CursorMove(1, 0);
-            }
+            Gameplay_CursorMove(1, 0);
             break;
 
         case GAMEBUTTON_A:
@@ -726,13 +714,14 @@ static void Gameplay_DrawRangeHighlights(void){
                 uint8_t moveCost = 255;
                 if(Gameplay_IsTileReachableByPlayer(x, y, gEnergyRemaining, &moveCost) &&
                    !(x == player->tileX && y == player->tileY)){
-                    ST7735_DrawBitmap((x * 12) + 2, (y * 12) + 9, blueBlock, 8, 8);
+                    ST7735_DrawBitmap((x * 12) + 3, (y * 12) + 9, moveIcon, 6, 8);
                 }
             } else if(gTurnMode == TURNMODE_ATTACK){
                 uint8_t range = (gSelectedAttackMove == PLAYERSTYLE_MELEE) ? 1 : 4;
                 uint8_t distance = (uint8_t)(abs((int16_t)x - player->tileX) + abs((int16_t)y - player->tileY));
                 if(distance <= range){
-                    ST7735_DrawBitmap((x * 12) + 2, (y * 12) + 9, yellowBlock, 8, 8);
+                    const uint16_t* iconToDraw = (gSelectedAttackMove == PLAYERSTYLE_MELEE) ? meleeIcon : rangedIcon;
+                    ST7735_DrawBitmap((x * 12) + 3, (y * 12) + 9, iconToDraw, 6, 8);
                 }
             }
         }
@@ -745,9 +734,9 @@ static void Gameplay_DrawCursor(void){
     if(gOldCursorX != 255 && (gOldCursorX != gCursorX || gOldCursorY != gCursorY)){
         drawRoomTile(worldMap, worldX, worldY, gOldCursorX, gOldCursorY);
     }
-    cursorDrawX = (uint8_t)(gCursorX * 12 + 2);
-    cursorDrawY = (uint8_t)(gCursorY * 12 + 9);
-    ST7735_DrawBitmap(cursorDrawX, cursorDrawY, yellowBlock, 8, 8);
+    cursorDrawX = (uint8_t)(gCursorX * 12 + 4);
+    cursorDrawY = (uint8_t)(gCursorY * 12 + 7);
+    ST7735_DrawBitmap(cursorDrawX, cursorDrawY, cursor, 4, 4);
     gOldCursorX = gCursorX;
     gOldCursorY = gCursorY;
 }
@@ -762,7 +751,7 @@ static void Gameplay_DrawHealthBar(void){
     uint8_t i;
     uint8_t barX = 108;
     uint8_t barStartY = 92;
-    ST7735_SetCursor(14, 0);
+    ST7735_SetCursor(16, 0);
     ST7735_OutString("HP");
     for(i = 0; i < gPlayerHealthMax; i++){
         uint8_t y = (uint8_t)(barStartY - (i * 8));
