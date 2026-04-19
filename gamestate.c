@@ -999,9 +999,6 @@ static void Gameplay_CommitMove(void){
     uint8_t pathX[64];
     uint8_t pathY[64];
     uint8_t pathLen = 0;
-    if(!gEnergySplitLocked){
-        gEnergySplitLocked = 1;
-    }
     if(gMoveCommittedThisTurn){
         return;
     }
@@ -1015,6 +1012,9 @@ static void Gameplay_CommitMove(void){
     }
     if(!Gameplay_BuildPathToTarget(player->tileX, player->tileY, gCursorX, gCursorY, gMoveEnergyRemaining, pathX, pathY, &pathLen)){
         return;
+    }
+    if(!gEnergySplitLocked){
+        gEnergySplitLocked = 1;
     }
     Gameplay_AnimateEntityMovePath(player, pathX, pathY, pathLen);
     gMoveEnergyRemaining = (uint8_t)(gMoveEnergyRemaining - moveCost);
@@ -1034,17 +1034,13 @@ static void Gameplay_CommitAttack(void){
     uint8_t attackCost = (gSelectedAttackMove == PLAYERSTYLE_MELEE) ? 2 : 1;
     uint8_t attackDamage = (gSelectedAttackMove == PLAYERSTYLE_MELEE) ? 5 : 1;
     Entity* target;
-    if(!gEnergySplitLocked){
-        gEnergySplitLocked = 1;
-    }
-    if(gAttackEnergyRemaining == 0){
-        Gameplay_EndPlayerTurn();
-        return;
-    }
-    if(gAttackEnergyRemaining < attackCost) return;
     if(!Gameplay_CanAttackTarget()) return;
     target = Gameplay_FindAttackTargetAtCursor();
     if(!target) return;
+    if(gAttackEnergyRemaining < attackCost) return;
+    if(!gEnergySplitLocked){
+        gEnergySplitLocked = 1;
+    }
     if(attackDamage >= target->data0){
         target->data0 = 0;
         Entity_Deactivate(target);
@@ -1058,7 +1054,10 @@ static void Gameplay_CommitAttack(void){
         Gameplay_EndPlayerTurn();
         return;
     }
+    gSelectingGridAction = 0;
+    gPlayerMenuState = PLAYERMENU_ROOT;
     gNeedsFullGameplayRedraw = 1;
+    gForceHUDRedraw = 1;
 }
 
 static void Gameplay_DrawHUD(void){
