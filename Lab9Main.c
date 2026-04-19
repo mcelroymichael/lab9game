@@ -24,8 +24,8 @@
 #include "graphics.h"
 #include "room.h"
 #include "gamestate.h"
-#include <SPI.h>
-#include <SD.h>
+//#include <SPI.h>
+//#include <SD.h>
 
 // ****note to ECE319K students****
 // the data sheet says the ADC does not work when clock is 80 MHz
@@ -115,7 +115,7 @@ void handleButtons(void){
   oldButtonState = buttonState;
 }
 
-// games  engine runs at 30Hz
+// games  engine runs at 30Hz 
 void TIMG12_IRQHandler(void){uint32_t pos,msg;
   if((TIMG12->CPU_INT.IIDX) == 1){ // this will acknowledge
     GPIOB->DOUTTGL31_0 = GREEN; // toggle PB27 (minimally intrusive debugging)

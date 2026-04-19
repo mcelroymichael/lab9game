@@ -469,7 +469,7 @@ static void Gameplay_SetStyle(PlayerStyle style){
     if(style == PLAYERSTYLE_MELEE){
         Entity_SetBitmap(player, happyBlock);
     } else {
-        Entity_SetBitmap(player, yellowBlock);
+        Entity_SetBitmap(player, happyBlue);
     }
 }
 

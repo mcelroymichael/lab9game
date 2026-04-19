@@ -27,6 +27,7 @@ extern const uint16_t redtile[144];
 extern const uint16_t bluetile[144];
 extern const uint16_t teleporter_Inctive[144];
 extern const uint16_t teleporter_Active[144];
+extern const uint16_t happyBlue[64];
 extern const uint16_t logo[10240];
 extern const uint32_t tilemap1[64];
 extern const uint32_t tilemap2[64];
