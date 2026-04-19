@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #include "Switch.h"
 
+extern uint32_t ADCin(void);
+
 #define MENU_OPTION_COUNT 2
 #define LANGUAGE_OPTION_COUNT 2
 
@@ -41,6 +43,12 @@ static PlayerStyle gPlayerStyle = PLAYERSTYLE_MELEE;
 static TurnMode gTurnMode = TURNMODE_MOVE;
 static uint8_t gMovementEnergyMax = 6;
 static uint8_t gEnergyRemaining = 6;
+static uint8_t gMoveEnergyRemaining = 6;
+static uint8_t gAttackEnergyRemaining = 0;
+static uint8_t gEnergySplitLocked = 0;
+static uint8_t gMoveCommittedThisTurn = 0;
+static uint32_t gLatestADC = 0;
+static uint32_t gLatestADCCm = 0;
 static uint8_t gPlayerHealthMax = 10;
 static uint8_t gPlayerHealth = 10;
 static uint8_t gSelectedAttackMove = 0;
@@ -85,6 +93,7 @@ extern void INGAME_ResetPlayerPosition(void);
 static void GameState_DrawLanguageSelect(void);
 static void GameState_DrawMainMenu(void);
 static void GameState_DrawGameplay(void);
+static void GameState_DrawEnding(void);
 static void GameState_EnterMainMenu(void);
 static void GameState_StartINGAME(void);
 static void GameState_HandlePressedLanguageSelect(GameButton button);
@@ -93,12 +102,16 @@ static void GameState_HandlePressedGameplay(GameButton button);
 static void GameState_HandleReleasedLanguageSelect(GameButton button);
 static void GameState_HandleReleasedMainMenu(GameButton button);
 static void GameState_HandleReleasedGameplay(GameButton button);
+static void GameState_HandlePressedEnding(GameButton button);
+static void GameState_HandleReleasedEnding(GameButton button);
 static void Gameplay_InitTurnState(void);
 static void Gameplay_SetStyle(PlayerStyle style);
 static void Gameplay_ResetCursorToPlayer(void);
 static uint8_t Gameplay_CursorMove(int8_t dx, int8_t dy);
 static uint8_t Gameplay_PreviewEnergyAfterMove(void);
 static uint8_t Gameplay_PreviewEnergyAfterAttack(void);
+static uint8_t Gameplay_CurrentModeEnergyRemaining(void);
+static void Gameplay_UpdateEnergySplitFromADC(void);
 static uint8_t Gameplay_CursorDistanceFromPlayer(void);
 static uint8_t Gameplay_CanAttackTarget(void);
 static Entity* Gameplay_FindAttackTargetAtCursor(void);
@@ -124,7 +137,7 @@ static void Gameplay_ClearHUDRow(uint8_t row);
 static void Gameplay_UpdateTeleporterState(void);
 static void Gameplay_LoadStage(uint8_t stage);
 static void Gameplay_ClearEnemies(void);
-static void Gameplay_SpawnEnemyAt(uint8_t tileX, uint8_t tileY, uint8_t hp, uint8_t attackPower);
+static void Gameplay_SpawnEnemyAt(uint8_t tileX, uint8_t tileY, uint8_t hp, uint8_t attackPower, const uint16_t* sprite);
 static uint8_t Gameplay_IsPlayerAdjacentToEnemy(const Entity* enemy);
 static void Gameplay_EnemyTryMoveTowardsPlayer(Entity* enemy);
 static uint8_t Gameplay_IsTileOccupiedByEnemy(uint8_t tileX, uint8_t tileY, const Entity* ignoreEnemy);
@@ -205,6 +218,12 @@ void GameState_Draw(void){
         case GAMESTATE_INGAME:
             GameState_DrawGameplay();
             break;
+        case GAMESTATE_ENDING:
+            if(gScreenDirty){
+                GameState_DrawEnding();
+                gScreenDirty = 0;
+            }
+            break;
 
         default:
             break;
@@ -224,6 +243,9 @@ void GameState_OnButtonPressed(GameButton button){
         case GAMESTATE_INGAME:
             GameState_HandlePressedGameplay(button);
             break;
+        case GAMESTATE_ENDING:
+            GameState_HandlePressedEnding(button);
+            break;
 
         default:
             break;
@@ -242,6 +264,9 @@ void GameState_OnButtonReleased(GameButton button){
 
         case GAMESTATE_INGAME:
             GameState_HandleReleasedGameplay(button);
+            break;
+        case GAMESTATE_ENDING:
+            GameState_HandleReleasedEnding(button);
             break;
 
         default:
@@ -468,8 +493,7 @@ static void GameState_HandlePressedGameplay(GameButton button){
             break;
 
         case GAMEBUTTON_B:
-            gTurnMode = (gTurnMode == TURNMODE_MOVE) ? TURNMODE_ATTACK : TURNMODE_MOVE;
-            gNeedsFullGameplayRedraw = 1;
+            Gameplay_EndPlayerTurn();
             break;
 
         case GAMEBUTTON_ALT:
@@ -492,8 +516,25 @@ static void GameState_HandleReleasedGameplay(GameButton button){
     (void)button;
 }
 
+static void GameState_HandlePressedEnding(GameButton button){
+    if(button == GAMEBUTTON_A || button == GAMEBUTTON_ESC){
+        Gameplay_Shutdown();
+        GameState_EnterMainMenu();
+    }
+}
+
+static void GameState_HandleReleasedEnding(GameButton button){
+    (void)button;
+}
+
 static void GameState_DrawGameplay(void){
     if(gStageLoadedWorldX != worldX || gStageLoadedWorldY != worldY){
+        if(gCurrentStage >= 3){
+            gGameState = GAMESTATE_ENDING;
+            gScreenDirty = 1;
+            Changed = 1;
+            return;
+        }
         gCurrentStage++;
         Gameplay_LoadStage(gCurrentStage);
         gStageLoadedWorldX = worldX;
@@ -533,6 +574,11 @@ static void GameState_DrawGameplay(void){
 
 static void Gameplay_InitTurnState(void){
     gEnergyRemaining = gMovementEnergyMax;
+    gMoveEnergyRemaining = gMovementEnergyMax;
+    gAttackEnergyRemaining = 0;
+    gEnergySplitLocked = 0;
+    gMoveCommittedThisTurn = 0;
+    Gameplay_UpdateEnergySplitFromADC();
     gTurnMode = TURNMODE_MOVE;
     gSelectedAttackMove = gPlayerStyle;
     gAwaitingEnemyTurnAck = 0;
@@ -577,18 +623,45 @@ static uint8_t Gameplay_CursorDistanceFromPlayer(void){
 
 static uint8_t Gameplay_PreviewEnergyAfterMove(void){
     uint8_t moveCost = 255;
-    if(!Gameplay_IsTileReachableByPlayer(gCursorX, gCursorY, gEnergyRemaining, &moveCost)){
+    uint8_t moveEnergy = Gameplay_CurrentModeEnergyRemaining();
+    if(!Gameplay_IsTileReachableByPlayer(gCursorX, gCursorY, moveEnergy, &moveCost)){
         return 255;
     }
-    return gEnergyRemaining - moveCost;
+    return moveEnergy - moveCost;
 }
 
 static uint8_t Gameplay_PreviewEnergyAfterAttack(void){
     uint8_t attackCost = (gSelectedAttackMove == PLAYERSTYLE_MELEE) ? 2 : 1;
-    if(attackCost > gEnergyRemaining){
+    uint8_t attackEnergy = Gameplay_CurrentModeEnergyRemaining();
+    if(attackCost > attackEnergy){
         return 255;
     }
-    return gEnergyRemaining - attackCost;
+    return attackEnergy - attackCost;
+}
+
+static uint8_t Gameplay_CurrentModeEnergyRemaining(void){
+    if(gTurnMode == TURNMODE_MOVE){
+        return gMoveEnergyRemaining;
+    }
+    return gAttackEnergyRemaining;
+}
+
+static void Gameplay_UpdateEnergySplitFromADC(void){
+    uint32_t raw;
+    uint8_t moveEnergy;
+    if(gEnergySplitLocked){
+        return;
+    }
+    raw = ADCin();
+    gLatestADC = raw;
+    gLatestADCCm = (raw >= 4096u) ? 2u : (raw * 2u) / 4096u;
+    moveEnergy = (uint8_t)((raw * (gMovementEnergyMax + 1)) / 4096);
+    if(moveEnergy > gMovementEnergyMax){
+        moveEnergy = gMovementEnergyMax;
+    }
+    gMoveEnergyRemaining = moveEnergy;
+    gAttackEnergyRemaining = (uint8_t)(gMovementEnergyMax - moveEnergy);
+    gEnergyRemaining = (uint8_t)(gMoveEnergyRemaining + gAttackEnergyRemaining);
 }
 
 static Entity* Gameplay_FindAttackTargetAtCursor(void){
@@ -710,17 +783,25 @@ static uint8_t Gameplay_IsTileReachableByPlayer(uint8_t targetX, uint8_t targetY
 
 static void Gameplay_CommitMove(void){
     uint8_t moveCost = 255;
+    if(!gEnergySplitLocked){
+        gEnergySplitLocked = 1;
+    }
+    if(gMoveCommittedThisTurn){
+        return;
+    }
     if(gCursorX == player->tileX && gCursorY == player->tileY){
         gTurnMode = TURNMODE_ATTACK;
         gNeedsFullGameplayRedraw = 1;
         return;
     }
-    if(!Gameplay_IsTileReachableByPlayer(gCursorX, gCursorY, gEnergyRemaining, &moveCost)){
+    if(!Gameplay_IsTileReachableByPlayer(gCursorX, gCursorY, gMoveEnergyRemaining, &moveCost)){
         return;
     }
     Entity_SetTilePosition(player, gCursorX, gCursorY);
-    gEnergyRemaining = gEnergyRemaining - moveCost;
-    if(gEnergyRemaining == 0){
+    gMoveEnergyRemaining = (uint8_t)(gMoveEnergyRemaining - moveCost);
+    gEnergyRemaining = (uint8_t)(gMoveEnergyRemaining + gAttackEnergyRemaining);
+    gMoveCommittedThisTurn = 1;
+    if(gAttackEnergyRemaining == 0){
         Gameplay_EndPlayerTurn();
         return;
     }
@@ -732,11 +813,14 @@ static void Gameplay_CommitAttack(void){
     uint8_t attackCost = (gSelectedAttackMove == PLAYERSTYLE_MELEE) ? 2 : 1;
     uint8_t attackDamage = (gSelectedAttackMove == PLAYERSTYLE_MELEE) ? 5 : 1;
     Entity* target;
-    if(gEnergyRemaining == 0){
+    if(!gEnergySplitLocked){
+        gEnergySplitLocked = 1;
+    }
+    if(gAttackEnergyRemaining == 0){
         Gameplay_EndPlayerTurn();
         return;
     }
-    if(gEnergyRemaining < attackCost) return;
+    if(gAttackEnergyRemaining < attackCost) return;
     if(!Gameplay_CanAttackTarget()) return;
     target = Gameplay_FindAttackTargetAtCursor();
     if(!target) return;
@@ -746,8 +830,10 @@ static void Gameplay_CommitAttack(void){
     } else {
         target->data0 = target->data0 - attackDamage;
     }
-    gEnergyRemaining = gEnergyRemaining - attackCost;
-    if(gEnergyRemaining == 0){
+    Gameplay_UpdateTeleporterState();
+    gAttackEnergyRemaining = (uint8_t)(gAttackEnergyRemaining - attackCost);
+    gEnergyRemaining = (uint8_t)(gMoveEnergyRemaining + gAttackEnergyRemaining);
+    if(gAttackEnergyRemaining == 0){
         Gameplay_EndPlayerTurn();
         return;
     }
@@ -768,16 +854,19 @@ static void Gameplay_DrawHUD(void){
     static uint8_t prevEnemyHP = 255;
     static uint8_t prevEnemyATK = 255;
     uint8_t previewEnergy;
+    uint8_t modeEnergy;
     Entity* hoveredEnemy = Gameplay_FindAttackTargetAtCursor();
     uint8_t enemyPresent = (uint8_t)(gTurnMode == TURNMODE_ATTACK && hoveredEnemy != 0);
     uint8_t enemyHP = enemyPresent ? (uint8_t)hoveredEnemy->data0 : 255;
     uint8_t enemyATK = enemyPresent ? (uint8_t)hoveredEnemy->data1 : 255;
+    Gameplay_UpdateEnergySplitFromADC();
+    modeEnergy = Gameplay_CurrentModeEnergyRemaining();
     previewEnergy = (gTurnMode == TURNMODE_MOVE) ? Gameplay_PreviewEnergyAfterMove() : Gameplay_PreviewEnergyAfterAttack();
 
     if(!gForceHUDRedraw &&
        prevTurnMode == gTurnMode &&
        prevAttackMove == gSelectedAttackMove &&
-       prevEnergy == gEnergyRemaining &&
+       prevEnergy == modeEnergy &&
        prevPreview == previewEnergy &&
        prevEnemyPresent == enemyPresent &&
        prevEnemyHP == enemyHP &&
@@ -810,7 +899,7 @@ static void Gameplay_DrawHUD(void){
     }
     ST7735_SetCursor(0, 14);
     ST7735_OutString("E:");
-    ST7735_OutUDec(gEnergyRemaining);
+    ST7735_OutUDec(modeEnergy);
     ST7735_OutString("->");
     previewEnergy = (gTurnMode == TURNMODE_MOVE) ? Gameplay_PreviewEnergyAfterMove() : Gameplay_PreviewEnergyAfterAttack();
     if(previewEnergy == 255){
@@ -821,11 +910,23 @@ static void Gameplay_DrawHUD(void){
     }
     prevTurnMode = gTurnMode;
     prevAttackMove = gSelectedAttackMove;
-    prevEnergy = gEnergyRemaining;
+    prevEnergy = modeEnergy;
     prevPreview = previewEnergy;
     prevEnemyPresent = enemyPresent;
     prevEnemyHP = enemyHP;
     prevEnemyATK = enemyATK;
+    ST7735_SetCursor(14, 16);
+    ST7735_OutString("L");
+    ST7735_OutUDec(gCurrentStage);
+    ST7735_OutString("/3");
+    ST7735_SetCursor(13, 17);
+    ST7735_OutString("M");
+    ST7735_OutUDec(gMoveEnergyRemaining);
+    ST7735_OutString("A");
+    ST7735_OutUDec(gAttackEnergyRemaining);
+    ST7735_SetCursor(13, 18);
+    ST7735_OutUDec(gLatestADCCm);
+    ST7735_OutString("cm");
     gForceHUDRedraw = 0;
 }
 
@@ -836,7 +937,7 @@ static void Gameplay_DrawRangeHighlights(void){
         for(x = 0; x < 8; x++){
             if(gTurnMode == TURNMODE_MOVE){
                 uint8_t moveCost = 255;
-                if(Gameplay_IsTileReachableByPlayer(x, y, gEnergyRemaining, &moveCost) &&
+                if(Gameplay_IsTileReachableByPlayer(x, y, gMoveEnergyRemaining, &moveCost) &&
                    !(x == player->tileX && y == player->tileY)){
                     //ST7735_DrawBitmap((x * 12) + 3, (y * 12) + 9, moveIcon, 6, 8);
                     ST7735_FillRect((x * 12 + 6 ), (y*12 + 5), 2, 2, ST7735_BLUE);
@@ -857,7 +958,7 @@ static void Gameplay_DrawRangeHighlights(void){
 static void Gameplay_DrawHighlightAtTile(uint8_t tileX, uint8_t tileY){
     if(gTurnMode == TURNMODE_MOVE){
         uint8_t moveCost = 255;
-        if(Gameplay_IsTileReachableByPlayer(tileX, tileY, gEnergyRemaining, &moveCost) &&
+        if(Gameplay_IsTileReachableByPlayer(tileX, tileY, gMoveEnergyRemaining, &moveCost) &&
            !(tileX == player->tileX && tileY == player->tileY)){
             //ST7735_DrawBitmap((tileX * 12) + 3, (tileY * 12) + 9, moveIcon, 6, 8);
             ST7735_FillRect((tileX * 12 + 6 ), (tileY * 12 + 5), 2, 2, ST7735_BLUE);
@@ -1039,6 +1140,11 @@ static void Gameplay_AcknowledgeEnemyTurnSummary(void){
     gEnemyTurnSummaryDirty = 1;
     gAwaitingEnemyTurnAck = 0;
     gEnergyRemaining = gMovementEnergyMax;
+    gMoveEnergyRemaining = gMovementEnergyMax;
+    gAttackEnergyRemaining = 0;
+    gEnergySplitLocked = 0;
+    gMoveCommittedThisTurn = 0;
+    Gameplay_UpdateEnergySplitFromADC();
     gTurnMode = TURNMODE_MOVE;
     Gameplay_ResetCursorToPlayer();
     Gameplay_UpdateTeleporterState();
@@ -1056,17 +1162,17 @@ static void Gameplay_LoadStage(uint8_t stage){
     Gameplay_ClearEnemies();
 
     if(stageBucket == 0){
-        Gameplay_SpawnEnemyAt(4, 2, 8, 1);   // scout
-        Gameplay_SpawnEnemyAt(2, 5, 10, 2);  // skirmisher
+        Gameplay_SpawnEnemyAt(4, 2, 8, 1, enemy1);      // scout
+        Gameplay_SpawnEnemyAt(2, 5, 10, 2, yellowBlock); // skirmisher
     } else if(stageBucket == 1){
-        Gameplay_SpawnEnemyAt(5, 2, 10, 2);  // skirmisher
-        Gameplay_SpawnEnemyAt(1, 1, 7, 1);   // scout
-        Gameplay_SpawnEnemyAt(4, 6, 12, 3);  // bruiser
+        Gameplay_SpawnEnemyAt(5, 2, 10, 2, yellowBlock); // skirmisher
+        Gameplay_SpawnEnemyAt(1, 1, 7, 1, enemy1);       // scout
+        Gameplay_SpawnEnemyAt(4, 6, 12, 3, happyBlue);   // bruiser
     } else {
-        Gameplay_SpawnEnemyAt(1, 2, 8, 1);   // scout
-        Gameplay_SpawnEnemyAt(6, 2, 9, 2);   // skirmisher
-        Gameplay_SpawnEnemyAt(2, 6, 12, 3);  // bruiser
-        Gameplay_SpawnEnemyAt(5, 6, 14, 4);  // elite bruiser
+        Gameplay_SpawnEnemyAt(1, 2, 8, 1, enemy1);       // scout
+        Gameplay_SpawnEnemyAt(6, 2, 9, 2, yellowBlock);  // skirmisher
+        Gameplay_SpawnEnemyAt(2, 6, 12, 3, happyBlue);   // bruiser
+        Gameplay_SpawnEnemyAt(5, 6, 14, 4, blueBlock);   // elite bruiser
     }
 }
 
@@ -1079,12 +1185,12 @@ static void Gameplay_ClearEnemies(void){
     }
 }
 
-static void Gameplay_SpawnEnemyAt(uint8_t tileX, uint8_t tileY, uint8_t hp, uint8_t attackPower){
+static void Gameplay_SpawnEnemyAt(uint8_t tileX, uint8_t tileY, uint8_t hp, uint8_t attackPower, const uint16_t* sprite){
     Entity* enemy = addEntity(entList);
     if(!enemy){
         return;
     }
-    Entity_Init(enemy, tileX, tileY, 8, 8, ENEMY, enemy1);
+    Entity_Init(enemy, tileX, tileY, 8, 8, ENEMY, sprite ? sprite : enemy1);
     enemy->data0 = hp;
     enemy->data1 = attackPower;
     Entity_Activate(enemy);
@@ -1196,4 +1302,14 @@ static void Gameplay_Shutdown(void){
     gStageLoadedWorldY = 255;
     oldWorldX = 255;
     oldWorldY = 255;
+}
+
+static void GameState_DrawEnding(void){
+    ST7735_FillScreen(ST7735_BLACK);
+    ST7735_SetCursor(3, 4);
+    ST7735_OutString("You escaped!");
+    ST7735_SetCursor(1, 7);
+    ST7735_OutString("All 3 levels clear");
+    ST7735_SetCursor(1, 10);
+    ST7735_OutString("Press A for menu");
 }
