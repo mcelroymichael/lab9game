@@ -42,7 +42,7 @@ void SysTick_Handler(void){ // called at 11 kHz
       
       // Output to the DAC. Use the DriverLib function or register access:
       // DriverLib approach:
-      DL_DAC12_output12(DAC0, sample_12bit);
+      //DL_DAC12_output12(DAC0, sample_12bit);
       
       // Bare-metal approach (if configured correctly):
       // DAC0->DAT[0].DAT_12B = sample_12bit;
@@ -76,7 +76,7 @@ void Sound_Shoot(void){
 }
 
 void Sound_Killed(void){
-  Sound_Start(killed, 4080);
+  //Sound_Start(killed, 4080);
 }
 void Sound_Explosion(void){
   Sound_Start(explosion, 4080);

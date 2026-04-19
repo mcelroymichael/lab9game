@@ -13,7 +13,7 @@
 #include "../inc/TExaS.h"
 #include "../inc/Timer.h"
 #include "../inc/ADC1.h"
-#include "../inc/DAC5.h"
+#include "../inc/DAC.h"
 #include "../inc/Arabic.h"
 #include "SmallFont.h"
 #include "LED.h"
@@ -132,7 +132,8 @@ int main(void){ // main testing
   PLL_Init(); // set bus speed
   LaunchPad_Init();
   Switch_Init();
-  DAC_Init();
+  //DAC_Init();
+  ADCinit();
   ST7735_InitPrintf(INITR_BLACKTAB); // INITR_REDTAB for AdaFruit, INITR_BLACKTAB for HiLetGo
     //note: if you colors are weird, see different options for
     // ST7735_InitR(INITR_REDTAB); inside ST7735_InitPrintf()
