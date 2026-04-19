@@ -9,6 +9,7 @@
 #include "Switch.h"
 
 extern uint32_t ADCin(void);
+extern uint32_t potState;
 
 #define MENU_OPTION_COUNT 2
 #define LANGUAGE_OPTION_COUNT 2
@@ -652,10 +653,14 @@ static void Gameplay_UpdateEnergySplitFromADC(void){
     if(gEnergySplitLocked){
         return;
     }
-    raw = ADCin();
+    // Consume the latest ADC sample captured by the engine tick.
+    raw = potState;
+    if(raw > 4095u){
+        raw = 4095u;
+    }
     gLatestADC = raw;
-    gLatestADCCm = (raw >= 4096u) ? 2u : (raw * 2u) / 4096u;
-    moveEnergy = (uint8_t)((raw * (gMovementEnergyMax + 1)) / 4096);
+    gLatestADCCm = (raw * 20u) / 4095u;
+    moveEnergy = (uint8_t)((raw * (gMovementEnergyMax + 1u)) / 4096u);
     if(moveEnergy > gMovementEnergyMax){
         moveEnergy = gMovementEnergyMax;
     }
@@ -883,7 +888,7 @@ static void Gameplay_DrawHUD(void){
     Gameplay_ClearHUDRow(18);
     Gameplay_ClearHUDRow(19);
     Gameplay_ClearHUDRow(20);
-    ST7735_SetCursor(0, 13);
+    ST7735_SetCursor(0, 11);
     if(gTurnMode == TURNMODE_MOVE){
         ST7735_OutString("Move mode");
     } else {
@@ -891,13 +896,13 @@ static void Gameplay_DrawHUD(void){
         ST7735_OutString((gSelectedAttackMove == PLAYERSTYLE_MELEE) ? "Melee " : "Range ");
     }
     if(gTurnMode == TURNMODE_ATTACK && hoveredEnemy){
-        ST7735_SetCursor(0, 12);
+        ST7735_SetCursor(0, 10);
         ST7735_OutString("Enemy HP:");
         ST7735_OutUDec(hoveredEnemy->data0);
         ST7735_OutString(" ATK:");
         ST7735_OutUDec(hoveredEnemy->data1);
     }
-    ST7735_SetCursor(0, 14);
+    ST7735_SetCursor(0, 12);
     ST7735_OutString("E:");
     ST7735_OutUDec(modeEnergy);
     ST7735_OutString("->");
@@ -915,18 +920,21 @@ static void Gameplay_DrawHUD(void){
     prevEnemyPresent = enemyPresent;
     prevEnemyHP = enemyHP;
     prevEnemyATK = enemyATK;
-    ST7735_SetCursor(14, 16);
-    ST7735_OutString("L");
+    ST7735_SetCursor(0, 13);
+    ST7735_OutString("Lv:");
     ST7735_OutUDec(gCurrentStage);
     ST7735_OutString("/3");
-    ST7735_SetCursor(13, 17);
-    ST7735_OutString("M");
+    ST7735_SetCursor(0, 14);
+    ST7735_OutString("Move:");
     ST7735_OutUDec(gMoveEnergyRemaining);
-    ST7735_OutString("A");
+    ST7735_OutString(" Atk:");
     ST7735_OutUDec(gAttackEnergyRemaining);
-    ST7735_SetCursor(13, 18);
+    ST7735_SetCursor(0, 15);
+    ST7735_OutString("ADC:");
+    ST7735_OutUDec(gLatestADC);
+    ST7735_OutString(" (");
     ST7735_OutUDec(gLatestADCCm);
-    ST7735_OutString("cm");
+    ST7735_OutString("cm)");
     gForceHUDRedraw = 0;
 }
 
@@ -1107,19 +1115,19 @@ static void Gameplay_DrawEnemyTurnSummary(void){
     Gameplay_ClearHUDRow(18);
     Gameplay_ClearHUDRow(19);
     Gameplay_ClearHUDRow(20);
-    ST7735_SetCursor(0, 12);
+    ST7735_SetCursor(0, 10);
     ST7735_OutString("Enemy phase");
-    ST7735_SetCursor(0, 13);
+    ST7735_SetCursor(0, 11);
     ST7735_OutString("HP:");
     ST7735_OutUDec(gEnemyTurnHPBefore);
     ST7735_OutString("->");
     ST7735_OutUDec(gEnemyTurnHPAfter);
-    ST7735_SetCursor(0, 14);
+    ST7735_SetCursor(0, 12);
     ST7735_OutString("Hits:");
     ST7735_OutUDec(gEnemyTurnEnemiesAttacked);
     ST7735_OutString(" Move:");
     ST7735_OutUDec(gEnemyTurnEnemiesMoved);
-    ST7735_SetCursor(0, 15);
+    ST7735_SetCursor(0, 13);
     ST7735_OutString("Dmg:");
     ST7735_OutUDec(gEnemyTurnDamageTaken);
     ST7735_OutString(" A=Next");
