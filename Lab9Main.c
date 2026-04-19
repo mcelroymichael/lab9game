@@ -36,25 +36,6 @@ void PLL_Init(void){ // set phase lock loop (PLL)
   Clock_Init80MHz(0);   // run this line for 80MHz
 }
 
-Arabic_t ArabicAlphabet[]={
-alif,ayh,baa,daad,daal,dhaa,dhaal,faa,ghayh,haa,ha,jeem,kaaf,khaa,laam,meem,noon,qaaf,raa,saad,seen,sheen,ta,thaa,twe,waaw,yaa,zaa,space,dot,null
-};
-Arabic_t Hello[]={alif,baa,ha,raa,meem,null}; // hello
-Arabic_t WeAreHonoredByYourPresence[]={alif,noon,waaw,ta,faa,raa,sheen,null}; // we are honored by your presence
-int main0(void){ // main 0, demonstrate Arabic output
-  Clock_Init80MHz(0);
-  LaunchPad_Init();
-  ST7735_InitR(INITR_REDTAB); // INITR_REDTAB for AdaFruit, INITR_BLACKTAB for HiLetGo
-  ST7735_FillScreen(ST7735_WHITE);
-  Arabic_SetCursor(0,15);
-  Arabic_OutString(Hello);
-  Arabic_SetCursor(0,31);
-  Arabic_OutString(WeAreHonoredByYourPresence);
-  Arabic_SetCursor(0,63);
-  Arabic_OutString(ArabicAlphabet);
-  while(1){
-  }
-}
 uint32_t M=1;
 uint32_t Random32(void){
   M = 1664525*M+1013904223;
@@ -172,18 +153,6 @@ int main(void){ // main testing
 }
 
 
-// use main3 to test switches and LEDs
-int main3(void){ // main3
-  __disable_irq();
-  PLL_Init(); // set bus speed
-  LaunchPad_Init();
-  Switch_Init(); // initialize switches
-  LED_Init(); // initialize LED
-  while(1){
-    // write code to test switches and LEDs
-    
-  }
-}
 // use main4 to test sound outputs
 int main4(void){ uint32_t last=0,now;
   __disable_irq();
@@ -209,30 +178,5 @@ int main4(void){ uint32_t last=0,now;
       Sound_Fastinvader1(); // call one of your sounds
     }
     // modify this to test all your sounds
-  }
-}
-
-// ALL ST7735 OUTPUT MUST OCCUR IN MAIN
-int main5(void){ // final main
-  __disable_irq();
-  PLL_Init(); // set bus speed
-  LaunchPad_Init();
-  ST7735_InitPrintf(INITR_REDTAB); // INITR_REDTAB for AdaFruit, INITR_BLACKTAB for HiLetGo
-  ST7735_FillScreen(ST7735_BLACK);
-  ADCinit();     //PB18 = ADC1 channel 5, slidepot
-  Switch_Init(); // initialize switches
-  LED_Init();    // initialize LED
-  Sound_Init();  // initialize sound
-  TExaS_Init(0,0,&TExaS_LaunchPadLogicPB27PB26); // PB27 and PB26
-    // initialize interrupts on TimerG12 at 30 Hz
-  TimerG12_IntArm(80000000/30,2);
-  // initialize all data structures
-  __enable_irq();
-
-  while(1){
-    // wait for semaphore
-       // clear semaphore
-       // update ST7735R
-    // check for end game or level switch
   }
 }
