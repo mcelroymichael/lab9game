@@ -8,7 +8,8 @@
 #include <stdlib.h>
 #include "Switch.h"
 
-extern uint32_t ADCin(void);
+extern volatile uint32_t potState;
+extern uint32_t Convert(uint32_t input);
 
 #define MENU_OPTION_COUNT 2
 #define LANGUAGE_OPTION_COUNT 2
@@ -652,10 +653,14 @@ static void Gameplay_UpdateEnergySplitFromADC(void){
     if(gEnergySplitLocked){
         return;
     }
-    raw = ADCin();
+    // Consume the latest ADC sample captured by the engine tick.
+    raw = potState;
+    if(raw > 4095u){
+        raw = 4095u;
+    }
     gLatestADC = raw;
-    gLatestADCCm = (raw >= 4096u) ? 2u : (raw * 2u) / 4096u;
-    moveEnergy = (uint8_t)((raw * (gMovementEnergyMax + 1)) / 4096);
+    gLatestADCCm = Convert(raw);
+    moveEnergy = (uint8_t)((raw * (gMovementEnergyMax + 1u)) / 4096u);
     if(moveEnergy > gMovementEnergyMax){
         moveEnergy = gMovementEnergyMax;
     }
@@ -853,6 +858,8 @@ static void Gameplay_DrawHUD(void){
     static uint8_t prevEnemyPresent = 255;
     static uint8_t prevEnemyHP = 255;
     static uint8_t prevEnemyATK = 255;
+    static uint32_t prevADC = 0xFFFFFFFFu;
+    static uint32_t prevADCCm = 0xFFFFFFFFu;
     uint8_t previewEnergy;
     uint8_t modeEnergy;
     Entity* hoveredEnemy = Gameplay_FindAttackTargetAtCursor();
@@ -870,7 +877,9 @@ static void Gameplay_DrawHUD(void){
        prevPreview == previewEnergy &&
        prevEnemyPresent == enemyPresent &&
        prevEnemyHP == enemyHP &&
-       prevEnemyATK == enemyATK){
+       prevEnemyATK == enemyATK &&
+       prevADC == gLatestADC &&
+       prevADCCm == gLatestADCCm){
         return;
     }
 
@@ -915,18 +924,23 @@ static void Gameplay_DrawHUD(void){
     prevEnemyPresent = enemyPresent;
     prevEnemyHP = enemyHP;
     prevEnemyATK = enemyATK;
-    ST7735_SetCursor(14, 16);
-    ST7735_OutString("L");
+    prevADC = gLatestADC;
+    prevADCCm = gLatestADCCm;
+    ST7735_SetCursor(0, 16);
+    ST7735_OutString("Lv:");
     ST7735_OutUDec(gCurrentStage);
     ST7735_OutString("/3");
-    ST7735_SetCursor(13, 17);
-    ST7735_OutString("M");
+    ST7735_SetCursor(0, 17);
+    ST7735_OutString("Move:");
     ST7735_OutUDec(gMoveEnergyRemaining);
-    ST7735_OutString("A");
+    ST7735_OutString(" Atk:");
     ST7735_OutUDec(gAttackEnergyRemaining);
-    ST7735_SetCursor(13, 18);
+    ST7735_SetCursor(0, 18);
+    ST7735_OutString("ADC:");
+    ST7735_OutUDec(gLatestADC);
+    ST7735_OutString(" (");
     ST7735_OutUDec(gLatestADCCm);
-    ST7735_OutString("cm");
+    ST7735_OutString("cm)");
     gForceHUDRedraw = 0;
 }
 
