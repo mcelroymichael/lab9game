@@ -24,6 +24,8 @@
 #include "graphics.h"
 #include "room.h"
 #include "gamestate.h"
+#include <SPI.h>
+#include <SD.h>
 
 // ****note to ECE319K students****
 // the data sheet says the ADC does not work when clock is 80 MHz
