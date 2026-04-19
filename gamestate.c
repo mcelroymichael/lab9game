@@ -39,8 +39,8 @@ typedef enum {
 
 static PlayerStyle gPlayerStyle = PLAYERSTYLE_MELEE;
 static TurnMode gTurnMode = TURNMODE_MOVE;
-static uint8_t gMovementEnergyMax = 4;
-static uint8_t gEnergyRemaining = 4;
+static uint8_t gMovementEnergyMax = 6;
+static uint8_t gEnergyRemaining = 6;
 static uint8_t gPlayerHealthMax = 10;
 static uint8_t gPlayerHealth = 10;
 static uint8_t gSelectedAttackMove = 0;
@@ -729,8 +729,8 @@ static void Gameplay_CommitMove(void){
 }
 
 static void Gameplay_CommitAttack(void){
-    uint8_t attackCost = (gSelectedAttackMove == PLAYERSTYLE_MELEE) ? 1 : 1;
-    uint8_t attackDamage = (gSelectedAttackMove == PLAYERSTYLE_MELEE) ? 4 : 2;
+    uint8_t attackCost = (gSelectedAttackMove == PLAYERSTYLE_MELEE) ? 2 : 1;
+    uint8_t attackDamage = (gSelectedAttackMove == PLAYERSTYLE_MELEE) ? 5 : 1;
     Entity* target;
     if(gEnergyRemaining == 0){
         Gameplay_EndPlayerTurn();
@@ -789,6 +789,11 @@ static void Gameplay_DrawHUD(void){
     Gameplay_ClearHUDRow(13);
     Gameplay_ClearHUDRow(14);
     Gameplay_ClearHUDRow(15);
+    Gameplay_ClearHUDRow(16);
+    Gameplay_ClearHUDRow(17);
+    Gameplay_ClearHUDRow(18);
+    Gameplay_ClearHUDRow(19);
+    Gameplay_ClearHUDRow(20);
     ST7735_SetCursor(0, 13);
     if(gTurnMode == TURNMODE_MOVE){
         ST7735_OutString("Move mode");
@@ -996,6 +1001,11 @@ static void Gameplay_DrawEnemyTurnSummary(void){
     Gameplay_ClearHUDRow(13);
     Gameplay_ClearHUDRow(14);
     Gameplay_ClearHUDRow(15);
+    Gameplay_ClearHUDRow(16);
+    Gameplay_ClearHUDRow(17);
+    Gameplay_ClearHUDRow(18);
+    Gameplay_ClearHUDRow(19);
+    Gameplay_ClearHUDRow(20);
     ST7735_SetCursor(0, 12);
     ST7735_OutString("Enemy phase");
     ST7735_SetCursor(0, 13);
@@ -1020,6 +1030,11 @@ static void Gameplay_AcknowledgeEnemyTurnSummary(void){
     Gameplay_ClearHUDRow(13);
     Gameplay_ClearHUDRow(14);
     Gameplay_ClearHUDRow(15);
+    Gameplay_ClearHUDRow(16);
+    Gameplay_ClearHUDRow(17);
+    Gameplay_ClearHUDRow(18);
+    Gameplay_ClearHUDRow(19);
+    Gameplay_ClearHUDRow(20);
     gEnemyTurnSummaryVisible = 0;
     gEnemyTurnSummaryDirty = 1;
     gAwaitingEnemyTurnAck = 0;
@@ -1045,7 +1060,7 @@ static void Gameplay_LoadStage(uint8_t stage){
         Gameplay_SpawnEnemyAt(2, 5, 10, 2);  // skirmisher
     } else if(stageBucket == 1){
         Gameplay_SpawnEnemyAt(5, 2, 10, 2);  // skirmisher
-        Gameplay_SpawnEnemyAt(2, 2, 7, 1);   // scout
+        Gameplay_SpawnEnemyAt(1, 1, 7, 1);   // scout
         Gameplay_SpawnEnemyAt(4, 6, 12, 3);  // bruiser
     } else {
         Gameplay_SpawnEnemyAt(1, 2, 8, 1);   // scout
