@@ -10,6 +10,10 @@
 
 #define MENU_OPTION_COUNT 2
 #define LANGUAGE_OPTION_COUNT 2
+#define GAMEPLAY_BOARD_WIDTH ROOM_TILE_WIDTH
+#define GAMEPLAY_BOARD_HEIGHT ROOM_TILE_HEIGHT
+#define HUD_ROW_TOP 16
+#define HUD_ROW_BOTTOM 19
 
 // ------------------------------------------------------------
 // Internal state
@@ -516,7 +520,7 @@ static void GameState_DrawGameplay(void){
       oldWorldY = worldY;
       gNeedsFullGameplayRedraw = 0;
     } else if(cursorMoved){
-      if(gOldCursorX < 8 && gOldCursorY < 8){
+      if(gOldCursorX < GAMEPLAY_BOARD_WIDTH && gOldCursorY < GAMEPLAY_BOARD_HEIGHT){
         Gameplay_RedrawTile(gOldCursorX, gOldCursorY, 0);
       }
       Gameplay_RedrawTile(gCursorX, gCursorY, 1);
@@ -562,7 +566,10 @@ static void Gameplay_ResetCursorToPlayer(void){
 static uint8_t Gameplay_CursorMove(int8_t dx, int8_t dy){
     int8_t nextX = (int8_t)gCursorX + dx;
     int8_t nextY = (int8_t)gCursorY + dy;
-    if(nextX < 0 || nextX > 7 || nextY < 0 || nextY > 7){
+    if(nextX < 0 ||
+       nextX >= (int8_t)GAMEPLAY_BOARD_WIDTH ||
+       nextY < 0 ||
+       nextY >= (int8_t)GAMEPLAY_BOARD_HEIGHT){
         return 0;
     }
     gCursorX = (uint8_t)nextX;
@@ -630,7 +637,7 @@ static uint8_t Gameplay_IsEnemyBlockingTile(uint8_t tileX, uint8_t tileY){
 
 static uint8_t Gameplay_IsTileTraversableForMove(uint8_t tileX, uint8_t tileY){
     const uint32_t* tileMap = getTileMap(worldMap, worldX, worldY);
-    uint8_t idx = (uint8_t)((tileY * 8) + tileX);
+    uint8_t idx = (uint8_t)((tileY * GAMEPLAY_BOARD_WIDTH) + tileX);
     if(tileMap[idx] == 1){
         return 0;
     }
@@ -641,17 +648,17 @@ static uint8_t Gameplay_IsTileTraversableForMove(uint8_t tileX, uint8_t tileY){
 }
 
 static uint8_t Gameplay_IsTileReachableByPlayer(uint8_t targetX, uint8_t targetY, uint8_t maxCost, uint8_t* outCost){
-    uint8_t dist[8][8];
-    uint8_t qx[64];
-    uint8_t qy[64];
+    uint8_t dist[GAMEPLAY_BOARD_HEIGHT][GAMEPLAY_BOARD_WIDTH];
+    uint8_t qx[GAMEPLAY_BOARD_WIDTH * GAMEPLAY_BOARD_HEIGHT];
+    uint8_t qy[GAMEPLAY_BOARD_WIDTH * GAMEPLAY_BOARD_HEIGHT];
     uint8_t head = 0;
     uint8_t tail = 0;
     uint8_t x;
     uint8_t y;
     int8_t dx;
     int8_t dy;
-    for(y = 0; y < 8; y++){
-        for(x = 0; x < 8; x++){
+    for(y = 0; y < GAMEPLAY_BOARD_HEIGHT; y++){
+        for(x = 0; x < GAMEPLAY_BOARD_WIDTH; x++){
             dist[y][x] = 255;
         }
     }
@@ -681,7 +688,10 @@ static uint8_t Gameplay_IsTileReachableByPlayer(uint8_t targetX, uint8_t targetY
                 }
                 nextX = (int8_t)curX + dx;
                 nextY = (int8_t)curY + dy;
-                if(nextX < 0 || nextX > 7 || nextY < 0 || nextY > 7){
+                if(nextX < 0 ||
+                   nextX >= (int8_t)GAMEPLAY_BOARD_WIDTH ||
+                   nextY < 0 ||
+                   nextY >= (int8_t)GAMEPLAY_BOARD_HEIGHT){
                     continue;
                 }
                 if((uint8_t)nextX == targetX && (uint8_t)nextY == targetY){
@@ -785,11 +795,11 @@ static void Gameplay_DrawHUD(void){
         return;
     }
 
-    Gameplay_ClearHUDRow(12);
-    Gameplay_ClearHUDRow(13);
-    Gameplay_ClearHUDRow(14);
-    Gameplay_ClearHUDRow(15);
-    ST7735_SetCursor(0, 13);
+    Gameplay_ClearHUDRow(HUD_ROW_TOP);
+    Gameplay_ClearHUDRow(HUD_ROW_TOP + 1);
+    Gameplay_ClearHUDRow(HUD_ROW_TOP + 2);
+    Gameplay_ClearHUDRow(HUD_ROW_BOTTOM);
+    ST7735_SetCursor(0, HUD_ROW_TOP + 1);
     if(gTurnMode == TURNMODE_MOVE){
         ST7735_OutString("Move mode");
     } else {
@@ -797,13 +807,13 @@ static void Gameplay_DrawHUD(void){
         ST7735_OutString((gSelectedAttackMove == PLAYERSTYLE_MELEE) ? "Melee " : "Range ");
     }
     if(gTurnMode == TURNMODE_ATTACK && hoveredEnemy){
-        ST7735_SetCursor(0, 12);
+        ST7735_SetCursor(0, HUD_ROW_TOP);
         ST7735_OutString("Enemy HP:");
         ST7735_OutUDec(hoveredEnemy->data0);
         ST7735_OutString(" ATK:");
         ST7735_OutUDec(hoveredEnemy->data1);
     }
-    ST7735_SetCursor(0, 14);
+    ST7735_SetCursor(0, HUD_ROW_TOP + 2);
     ST7735_OutString("E:");
     ST7735_OutUDec(gEnergyRemaining);
     ST7735_OutString("->");
@@ -827,8 +837,8 @@ static void Gameplay_DrawHUD(void){
 static void Gameplay_DrawRangeHighlights(void){
     uint8_t x;
     uint8_t y;
-    for(y = 0; y < 8; y++){
-        for(x = 0; x < 8; x++){
+    for(y = 0; y < GAMEPLAY_BOARD_HEIGHT; y++){
+        for(x = 0; x < GAMEPLAY_BOARD_WIDTH; x++){
             if(gTurnMode == TURNMODE_MOVE){
                 uint8_t moveCost = 255;
                 if(Gameplay_IsTileReachableByPlayer(x, y, gEnergyRemaining, &moveCost) &&
@@ -992,23 +1002,23 @@ static void Gameplay_DrawEnemyTurnSummary(void){
     if(!gEnemyTurnSummaryDirty){
         return;
     }
-    Gameplay_ClearHUDRow(12);
-    Gameplay_ClearHUDRow(13);
-    Gameplay_ClearHUDRow(14);
-    Gameplay_ClearHUDRow(15);
-    ST7735_SetCursor(0, 12);
+    Gameplay_ClearHUDRow(HUD_ROW_TOP);
+    Gameplay_ClearHUDRow(HUD_ROW_TOP + 1);
+    Gameplay_ClearHUDRow(HUD_ROW_TOP + 2);
+    Gameplay_ClearHUDRow(HUD_ROW_BOTTOM);
+    ST7735_SetCursor(0, HUD_ROW_TOP);
     ST7735_OutString("Enemy phase");
-    ST7735_SetCursor(0, 13);
+    ST7735_SetCursor(0, HUD_ROW_TOP + 1);
     ST7735_OutString("HP:");
     ST7735_OutUDec(gEnemyTurnHPBefore);
     ST7735_OutString("->");
     ST7735_OutUDec(gEnemyTurnHPAfter);
-    ST7735_SetCursor(0, 14);
+    ST7735_SetCursor(0, HUD_ROW_TOP + 2);
     ST7735_OutString("Hits:");
     ST7735_OutUDec(gEnemyTurnEnemiesAttacked);
     ST7735_OutString(" Move:");
     ST7735_OutUDec(gEnemyTurnEnemiesMoved);
-    ST7735_SetCursor(0, 15);
+    ST7735_SetCursor(0, HUD_ROW_BOTTOM);
     ST7735_OutString("Dmg:");
     ST7735_OutUDec(gEnemyTurnDamageTaken);
     ST7735_OutString(" A=Next");
@@ -1016,10 +1026,10 @@ static void Gameplay_DrawEnemyTurnSummary(void){
 }
 
 static void Gameplay_AcknowledgeEnemyTurnSummary(void){
-    Gameplay_ClearHUDRow(12);
-    Gameplay_ClearHUDRow(13);
-    Gameplay_ClearHUDRow(14);
-    Gameplay_ClearHUDRow(15);
+    Gameplay_ClearHUDRow(HUD_ROW_TOP);
+    Gameplay_ClearHUDRow(HUD_ROW_TOP + 1);
+    Gameplay_ClearHUDRow(HUD_ROW_TOP + 2);
+    Gameplay_ClearHUDRow(HUD_ROW_BOTTOM);
     gEnemyTurnSummaryVisible = 0;
     gEnemyTurnSummaryDirty = 1;
     gAwaitingEnemyTurnAck = 0;

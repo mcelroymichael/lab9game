@@ -10,8 +10,8 @@ void drawRoom(Room* world[MAXWORLD_SIZE][MAXWORLD_SIZE], uint8_t x, uint8_t y){
     uint8_t tileX;
     uint8_t tileY;
 
-    for(tileY = 0; tileY < 8; tileY++){
-        for(tileX = 0; tileX < 8; tileX++){
+    for(tileY = 0; tileY < ROOM_TILE_HEIGHT; tileY++){
+        for(tileX = 0; tileX < ROOM_TILE_WIDTH; tileX++){
             drawRoomTile(world, x, y, tileX, tileY);
         }
     }
@@ -19,7 +19,7 @@ void drawRoom(Room* world[MAXWORLD_SIZE][MAXWORLD_SIZE], uint8_t x, uint8_t y){
 
 void drawRoomTile(Room* world[MAXWORLD_SIZE][MAXWORLD_SIZE], uint8_t roomX, uint8_t roomY,uint8_t tileX, uint8_t tileY){
     Room* r = world[roomX][roomY];
-    uint32_t i = tileX + tileY * 8;
+    uint32_t i = tileX + tileY * ROOM_TILE_WIDTH;
 
     if(r->tilemap[i] == 0){
         ST7735_DrawBitmap(tileX * 12, ((tileY + 1) * 12) - 1, greentile, 12, 12);
