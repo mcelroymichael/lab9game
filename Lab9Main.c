@@ -94,6 +94,7 @@ void handleButtons(void){
   }
 
   oldButtonState = buttonState;
+  
 }
 
 // games  engine runs at 30Hz 
@@ -130,6 +131,7 @@ int main(void){ // main testing
   PLL_Init(); // set bus speed
   LaunchPad_Init();
   Switch_Init();
+  DAC_Init();
   ST7735_InitPrintf(INITR_BLACKTAB); // INITR_REDTAB for AdaFruit, INITR_BLACKTAB for HiLetGo
     //note: if you colors are weird, see different options for
     // ST7735_InitR(INITR_REDTAB); inside ST7735_InitPrintf()
