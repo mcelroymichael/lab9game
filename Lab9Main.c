@@ -76,173 +76,43 @@ Room* worldMap[MAXWORLD_SIZE][MAXWORLD_SIZE];
 Entity* player;
 
 void handleButtons(void){
-  if(buttonState == oldButtonState) return;
-  else{
-    uint8_t status;
-    bool inMenu = false;
+  uint32_t changed = buttonState ^ oldButtonState;
+  if(!changed) return;
 
-    if(GameState_Get() == GAMESTATE_MAIN_MENU || GameState_Get() == GAMESTATE_LANGUAGE_SELECT) {
-      inMenu = true;
-    }
-
-    // DEBOUNCING (WAIT FUNCTION CAN GO HERE)
-    if(((buttonState >> 0) & 0b1) != oldButtonState){                  // A_BUTTON
-        if(((buttonState >> 0) & 0b1) == 1){ //RISING EDGE DETECTION
-          if(inMenu){
-            GameState_OnButtonPressed(GAMEBUTTON_A);
-          } else{
-
-          }
-        } else {                      //FALLING EDGE
-          if(inMenu){
-            GameState_OnButtonReleased(GAMEBUTTON_A);
-          } else{
-
-          }
-        }
-    }
-    if(((buttonState >> 1) & 0b1) != (oldButtonState >> 1)){                  // RIGHT
-        if(((buttonState >> 1) & 0b1) == 1){ //RISING EDGE DETECTION
-          if(inMenu){
-            GameState_OnButtonPressed(GAMEBUTTON_RIGHT);
-          } else{
-            status = Entity_TryMove(player, 1, 0, getTileMap(worldMap, worldX, worldY));
-            if(status == 2) {
-              if((worldX + 1) < MAXWORLD_SIZE){
-                worldX = worldX + 1;
-                Entity_SetTilePosition(player, 0, player->tileY);
-              }
-            }
-          }
-        } else {                      //FALLING EDGE
-          if(inMenu){
-            GameState_OnButtonReleased(GAMEBUTTON_RIGHT);
-          } else{
-
-          }
-        }
-    }
-    if(((buttonState >> 2) & 0b1) != (oldButtonState >> 2)){    // DOWN
-        if(((buttonState >> 2) & 0b1) == 1){ //RISING EDGE DETECTION
-          if(inMenu){
-            GameState_OnButtonPressed(GAMEBUTTON_DOWN);
-          } else{
-            status = Entity_TryMove(player, 0, 1, getTileMap(worldMap, worldX, worldY));
-            if(status == 2) {
-              if((worldY + 1) < MAXWORLD_SIZE){
-                worldY = worldY + 1;
-                Entity_SetTilePosition(player, player->tileX, 0);
-              }
-            }
-          }
-
-        } else {                      //FALLING EDGE
-          if(inMenu){
-            GameState_OnButtonReleased(GAMEBUTTON_DOWN);
-          } else{
-
-          }
-      }
-    }
-    if(((buttonState >> 3) & 0b1) != (oldButtonState >> 3)){    // LEFT
-        if(((buttonState >> 3) & 0b1) == 1){ //RISING EDGE DETECTION
-          if(inMenu){
-            GameState_OnButtonPressed(GAMEBUTTON_LEFT);
-          } else{
-            status = Entity_TryMove(player, -1, 0, getTileMap(worldMap, worldX, worldY));
-            if(status == 2) {
-              if((worldX - 1) >= 0){
-                worldX = worldX - 1;
-                Entity_SetTilePosition(player, 7, player->tileY);
-              }
-            }
-          }
-        } else {                      //FALLING EDGE
-          if(inMenu){
-            GameState_OnButtonReleased(GAMEBUTTON_LEFT);
-          } else{
-
-          }
-      }
-    }
-    if(((buttonState >> 4) & 0b1) != (oldButtonState >> 4)){    // UP
-        if(((buttonState >> 4) & 0b1) == 1){ //RISING EDGE DETECTION
-          if(inMenu){
-            GameState_OnButtonPressed(GAMEBUTTON_UP);
-          } else{
-            status = Entity_TryMove(player, 0, -1, getTileMap(worldMap, worldX, worldY));
-            if(status == 2) {
-              if((worldY - 1) >= 0){
-                worldY = worldY - 1;
-                Entity_SetTilePosition(player, player->tileX, 7);
-              }
-            }
-          }
-        } else {                      //FALLING EDGE
-          if(inMenu){
-            GameState_OnButtonReleased(GAMEBUTTON_UP);
-          } else{
-
-          }
-      }
-    }
-      if(((buttonState >> 5) & 0b1) != (oldButtonState >> 5)){    //B
-        if(((buttonState >> 5) & 0b1) == 1){ //RISING EDGE DETECTION
-          if(inMenu){
-            GameState_OnButtonPressed(GAMEBUTTON_UP);
-          } else{
-            status = Entity_TryMove(player, 0, -1, getTileMap(worldMap, worldX, worldY));
-            if(status == 2) {
-              if((worldY - 1) >= 0){
-                worldY = worldY - 1;
-                Entity_SetTilePosition(player, player->tileX, 7);
-              }
-            }
-          }
-        } else {                      //FALLING EDGE
-          if(inMenu){
-            GameState_OnButtonReleased(GAMEBUTTON_UP);
-          } else{
-
-          }
-      }
-    }
-      if(((buttonState >> 6) & 0b1) != (oldButtonState >> 6)){    // ALT
-        if(((buttonState >> 6) & 0b1) == 1){ //RISING EDGE DETECTION
-          if(inMenu){
-            GameState_OnButtonPressed(GAMEBUTTON_UP);
-          } else{
-            status = Entity_TryMove(player, 0, -1, getTileMap(worldMap, worldX, worldY));
-            if(status == 2) {
-              if((worldY - 1) >= 0){
-                worldY = worldY - 1;
-                Entity_SetTilePosition(player, player->tileX, 7);
-              }
-            }
-          }
-        } else {                      //FALLING EDGE
-          if(inMenu){
-            GameState_OnButtonReleased(GAMEBUTTON_UP);
-          } else{
-
-          }
-      }
-    }
-      if(((buttonState >> 7) & 0b1) != (oldButtonState >> 7)){    // ESC
-        if(((buttonState >> 7) & 0b1) == 1){ //RISING EDGE DETECTION
-          if(inMenu){
-            
-          } else{
-            
-          }
-        } else {                      //FALLING EDGE
-          
-          
-          }
-      }
-  
-  oldButtonState = buttonState;
+  if(changed & (1u << 0)){ // A
+    if(buttonState & (1u << 0)) GameState_OnButtonPressed(GAMEBUTTON_A);
+    else GameState_OnButtonReleased(GAMEBUTTON_A);
   }
+  if(changed & (1u << 1)){ // RIGHT
+    if(buttonState & (1u << 1)) GameState_OnButtonPressed(GAMEBUTTON_RIGHT);
+    else GameState_OnButtonReleased(GAMEBUTTON_RIGHT);
+  }
+  if(changed & (1u << 2)){ // DOWN
+    if(buttonState & (1u << 2)) GameState_OnButtonPressed(GAMEBUTTON_DOWN);
+    else GameState_OnButtonReleased(GAMEBUTTON_DOWN);
+  }
+  if(changed & (1u << 3)){ // LEFT
+    if(buttonState & (1u << 3)) GameState_OnButtonPressed(GAMEBUTTON_LEFT);
+    else GameState_OnButtonReleased(GAMEBUTTON_LEFT);
+  }
+  if(changed & (1u << 4)){ // UP
+    if(buttonState & (1u << 4)) GameState_OnButtonPressed(GAMEBUTTON_UP);
+    else GameState_OnButtonReleased(GAMEBUTTON_UP);
+  }
+  if(changed & (1u << 5)){ // B
+    if(buttonState & (1u << 5)) GameState_OnButtonPressed(GAMEBUTTON_B);
+    else GameState_OnButtonReleased(GAMEBUTTON_B);
+  }
+  if(changed & (1u << 6)){ // ALT
+    if(buttonState & (1u << 6)) GameState_OnButtonPressed(GAMEBUTTON_ALT);
+    else GameState_OnButtonReleased(GAMEBUTTON_ALT);
+  }
+  if(changed & (1u << 7)){ // ESC
+    if(buttonState & (1u << 7)) GameState_OnButtonPressed(GAMEBUTTON_ESC);
+    else GameState_OnButtonReleased(GAMEBUTTON_ESC);
+  }
+
+  oldButtonState = buttonState;
 }
 
 // games  engine runs at 30Hz
