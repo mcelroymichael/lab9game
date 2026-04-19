@@ -827,10 +827,6 @@ static void Gameplay_DrawHUD(void){
     Gameplay_ClearHUDRow(18);
     Gameplay_ClearHUDRow(19);
     Gameplay_ClearHUDRow(20);
-    ST7735_SetCursor(0, 20);
-    ST7735_OutString("Lvl:");
-    ST7735_OutUDec(gCurrentStage);
-    ST7735_OutString("/3");
     ST7735_SetCursor(0, 13);
     if(gTurnMode == TURNMODE_MOVE){
         ST7735_OutString("Move mode");
@@ -863,6 +859,10 @@ static void Gameplay_DrawHUD(void){
     prevEnemyPresent = enemyPresent;
     prevEnemyHP = enemyHP;
     prevEnemyATK = enemyATK;
+    ST7735_SetCursor(14, 16);
+    ST7735_OutString("L");
+    ST7735_OutUDec(gCurrentStage);
+    ST7735_OutString("/3");
     gForceHUDRedraw = 0;
 }
 
