@@ -529,6 +529,7 @@ static uint8_t Gameplay_CursorMove(int8_t dx, int8_t dy){
     }
     gCursorX = (uint8_t)nextX;
     gCursorY = (uint8_t)nextY;
+    gNeedsFullGameplayRedraw = 1;
     return 1;
 }
 
@@ -831,6 +832,28 @@ static void Gameplay_RedrawTile(uint8_t tileX, uint8_t tileY, uint8_t includeCur
     }
     if(includeCursor && tileX == gCursorX && tileY == gCursorY){
         ST7735_DrawBitmap((tileX * 12) + 2, (tileY * 12) + 9, yellowBlock, 8, 8);
+    }
+}
+
+static void Gameplay_DrawRangeHighlights(void){
+    uint8_t x;
+    uint8_t y;
+    for(y = 0; y < 8; y++){
+        for(x = 0; x < 8; x++){
+            if(gTurnMode == TURNMODE_MOVE){
+                uint8_t moveCost = 255;
+                if(Gameplay_IsTileReachableByPlayer(x, y, gEnergyRemaining, &moveCost) &&
+                   !(x == player->tileX && y == player->tileY)){
+                    ST7735_DrawBitmap((x * 12) + 2, (y * 12) + 9, blueBlock, 8, 8);
+                }
+            } else if(gTurnMode == TURNMODE_ATTACK){
+                uint8_t range = (gSelectedAttackMove == PLAYERSTYLE_MELEE) ? 1 : 4;
+                uint8_t distance = (uint8_t)(abs((int16_t)x - player->tileX) + abs((int16_t)y - player->tileY));
+                if(distance <= range){
+                    ST7735_DrawBitmap((x * 12) + 2, (y * 12) + 9, yellowBlock, 8, 8);
+                }
+            }
+        }
     }
 }
 
