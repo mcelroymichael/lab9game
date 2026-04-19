@@ -402,7 +402,7 @@ static void GameState_StartINGAME(void){
         Entity_Activate(tp);
 
         Entity *enemy = addEntity(entList);
-        Entity_Init(enemy, 4, 2, 8, 8, ENEMY, blueBlock);
+        Entity_Init(enemy, 4, 2, 8, 8, ENEMY, enemy1);
         enemy->data0 = 10;
         enemy->data1 = 2;
         Entity_Activate(enemy);
@@ -802,13 +802,14 @@ static void Gameplay_DrawHighlightAtTile(uint8_t tileX, uint8_t tileY){
         uint8_t moveCost = 255;
         if(Gameplay_IsTileReachableByPlayer(tileX, tileY, gEnergyRemaining, &moveCost) &&
            !(tileX == player->tileX && tileY == player->tileY)){
-            ST7735_DrawBitmap((tileX * 12) + 2, (tileY * 12) + 9, blueBlock, 8, 8);
+            ST7735_DrawBitmap((tileX * 12) + 3, (tileY * 12) + 9, moveIcon, 6, 8);
         }
     } else if(gTurnMode == TURNMODE_ATTACK){
         uint8_t range = (gSelectedAttackMove == PLAYERSTYLE_MELEE) ? 1 : 4;
         uint8_t distance = (uint8_t)(abs((int16_t)tileX - player->tileX) + abs((int16_t)tileY - player->tileY));
         if(distance <= range){
-            ST7735_DrawBitmap((tileX * 12) + 2, (tileY * 12) + 9, yellowBlock, 8, 8);
+            const uint16_t* iconToDraw = (gSelectedAttackMove == PLAYERSTYLE_MELEE) ? meleeIcon : rangedIcon;
+                    ST7735_DrawBitmap((tileX * 12) + 3, (tileY * 12) + 9, iconToDraw, 6, 8);
         }
     }
 }
