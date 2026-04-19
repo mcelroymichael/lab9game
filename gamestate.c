@@ -9,6 +9,7 @@
 #include "Switch.h"
 
 extern uint32_t ADCin(void);
+extern uint32_t potState;
 
 #define MENU_OPTION_COUNT 2
 #define LANGUAGE_OPTION_COUNT 2
@@ -652,10 +653,14 @@ static void Gameplay_UpdateEnergySplitFromADC(void){
     if(gEnergySplitLocked){
         return;
     }
-    raw = ADCin();
+    // Consume the latest ADC sample captured by the engine tick.
+    raw = potState;
+    if(raw > 4095u){
+        raw = 4095u;
+    }
     gLatestADC = raw;
-    gLatestADCCm = (raw >= 4096u) ? 2u : (raw * 2u) / 4096u;
-    moveEnergy = (uint8_t)((raw * (gMovementEnergyMax + 1)) / 4096);
+    gLatestADCCm = (raw * 20u) / 4095u;
+    moveEnergy = (uint8_t)((raw * (gMovementEnergyMax + 1u)) / 4096u);
     if(moveEnergy > gMovementEnergyMax){
         moveEnergy = gMovementEnergyMax;
     }
@@ -915,18 +920,21 @@ static void Gameplay_DrawHUD(void){
     prevEnemyPresent = enemyPresent;
     prevEnemyHP = enemyHP;
     prevEnemyATK = enemyATK;
-    ST7735_SetCursor(14, 16);
-    ST7735_OutString("L");
+    ST7735_SetCursor(0, 16);
+    ST7735_OutString("Lv:");
     ST7735_OutUDec(gCurrentStage);
     ST7735_OutString("/3");
-    ST7735_SetCursor(13, 17);
-    ST7735_OutString("M");
+    ST7735_SetCursor(0, 17);
+    ST7735_OutString("Move:");
     ST7735_OutUDec(gMoveEnergyRemaining);
-    ST7735_OutString("A");
+    ST7735_OutString(" Atk:");
     ST7735_OutUDec(gAttackEnergyRemaining);
-    ST7735_SetCursor(13, 18);
+    ST7735_SetCursor(0, 18);
+    ST7735_OutString("ADC:");
+    ST7735_OutUDec(gLatestADC);
+    ST7735_OutString(" (");
     ST7735_OutUDec(gLatestADCCm);
-    ST7735_OutString("cm");
+    ST7735_OutString("cm)");
     gForceHUDRedraw = 0;
 }
 
