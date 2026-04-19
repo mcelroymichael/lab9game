@@ -1032,8 +1032,7 @@ static void Gameplay_AcknowledgeEnemyTurnSummary(void){
 }
 
 static void Gameplay_ClearHUDRow(uint8_t row){
-    ST7735_SetCursor(0, row);
-    ST7735_OutString("                     ");
+    ST7735_FillRect(0, (uint16_t)(row * 8), 128, 8, ST7735_BLACK);
 }
 
 static void Gameplay_LoadStage(uint8_t stage){
