@@ -480,7 +480,6 @@ static void GameState_DrawGameplay(void){
       Gameplay_DrawTargetMarker();
       Gameplay_DrawCursor();
     }
-    }
     drawEntities(entList, worldMap, worldX, worldY);
     Gameplay_DrawTargetMarker();
     Gameplay_DrawCursor();
@@ -829,28 +828,6 @@ static void Gameplay_RedrawTile(uint8_t tileX, uint8_t tileY, uint8_t includeCur
     }
 }
 
-static void Gameplay_DrawRangeHighlights(void){
-    uint8_t x;
-    uint8_t y;
-    for(y = 0; y < 8; y++){
-        for(x = 0; x < 8; x++){
-            if(gTurnMode == TURNMODE_MOVE){
-                uint8_t moveCost = 255;
-                if(Gameplay_IsTileReachableByPlayer(x, y, gEnergyRemaining, &moveCost) &&
-                   !(x == player->tileX && y == player->tileY)){
-                    ST7735_DrawBitmap((x * 12) + 3, (y * 12) + 9, moveIcon, 6, 8);
-                }
-            } else if(gTurnMode == TURNMODE_ATTACK){
-                uint8_t range = (gSelectedAttackMove == PLAYERSTYLE_MELEE) ? 1 : 4;
-                uint8_t distance = (uint8_t)(abs((int16_t)x - player->tileX) + abs((int16_t)y - player->tileY));
-                if(distance <= range){
-                    const uint16_t* iconToDraw = (gSelectedAttackMove == PLAYERSTYLE_MELEE) ? meleeIcon : rangedIcon;
-                    ST7735_DrawBitmap((x * 12) + 3, (y * 12) + 9, iconToDraw, 6, 8);
-                }
-            }
-        }
-    }
-}
 
 static void Gameplay_DrawCursor(void){
     uint8_t cursorDrawX;
@@ -880,7 +857,7 @@ static void Gameplay_DrawHealthBar(void){
     if(!gForceHealthRedraw && prevHealth == gPlayerHealth && prevHealthMax == gPlayerHealthMax){
         return;
     }
-    ST7735_SetCursor(14, 0);
+    ST7735_SetCursor(16, 0);
     ST7735_OutString("HP");
     for(i = 0; i < gPlayerHealthMax; i++){
         uint8_t y = (uint8_t)(barStartY - (i * 8));
