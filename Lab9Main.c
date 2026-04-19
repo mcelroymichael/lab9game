@@ -24,6 +24,20 @@
 #include "graphics.h"
 #include "room.h"
 
+#define BUTTON_A_MASK      0x1U
+#define BUTTON_RIGHT_MASK  0x1U
+#define BUTTON_DOWN_MASK   0x2U
+#define BUTTON_LEFT_MASK   0x4U
+#define BUTTON_UP_MASK     0x8U
+#define BUTTON_ESC_MASK    0xFU  // Press all 4 direction buttons as ESC
+
+typedef enum {
+  MODE_MAIN_MENU = 0,
+  MODE_TUTORIAL,
+  MODE_PLAYING,
+  MODE_CONFIRM_RETURN
+} GameMode_t;
+
 // ****note to ECE319K students****
 // the data sheet says the ADC does not work when clock is 80 MHz
 // however, the ADC seems to work on my boards at 80 MHz
@@ -68,15 +82,140 @@ uint32_t buttonState, oldButtonState;
 uint32_t potState, oldPotState; 
 
 bool DRAWREADY;
+volatile GameMode_t gMode = MODE_MAIN_MENU;
+volatile uint8_t menuSelect = 0;
+volatile uint8_t confirmYesSelected = 0;
+volatile uint8_t requestStartGame = 0;
+volatile uint8_t requestContinueFromTutorial = 0;
+volatile uint8_t requestOpenEscapePrompt = 0;
+volatile uint8_t requestConfirmReturn = 0;
+volatile uint8_t requestCancelReturn = 0;
 
 Room* worldMap[MAXWORLD_SIZE][MAXWORLD_SIZE];
 Entity* player;
 
+static void DrawTopBanner(void){
+  ST7735_FillRect(0, 0, 128, 12, ST7735_BLUE);
+  ST7735_SetTextColor(ST7735_WHITE);
+  ST7735_SetCursor(4, 0);
+  ST7735_OutString("PLAYER TURN");
+}
+
+static void DrawMainMenu(void){
+  ST7735_FillScreen(ST7735_BLACK);
+  DrawTopBanner();
+  ST7735_SetTextColor(ST7735_YELLOW);
+  ST7735_SetCursor(1, 2); // keep menu near/flush to banner
+  ST7735_OutString("MAIN MENU");
+  ST7735_SetCursor(1, 4);
+  if(menuSelect == 0){
+    ST7735_OutString("> (Start Game)");
+  }else{
+    ST7735_OutString("  (Start Game)");
+  }
+  ST7735_SetTextColor(ST7735_WHITE);
+}
+
+static void DrawTutorial(void){
+  ST7735_FillScreen(ST7735_BLACK);
+  DrawTopBanner();
+  ST7735_SetTextColor(ST7735_GREEN);
+  ST7735_SetCursor(1, 3);
+  ST7735_OutString("TUTORIAL");
+  ST7735_SetTextColor(ST7735_WHITE);
+  ST7735_SetCursor(0, 5);
+  ST7735_OutString("Use D-pad to move.");
+  ST7735_SetCursor(0, 7);
+  ST7735_OutString("Avoid blocked tiles.");
+  ST7735_SetCursor(0, 9);
+  ST7735_OutString("Press all 4 buttons");
+  ST7735_SetCursor(0,10);
+  ST7735_OutString("to open ESC menu.");
+  ST7735_SetTextColor(ST7735_YELLOW);
+  ST7735_SetCursor(0, 13);
+  ST7735_OutString("(press A to continue)");
+  ST7735_SetTextColor(ST7735_WHITE);
+}
+
+static void DrawConfirmReturnDialog(void){
+  uint16_t boxX = 8;
+  uint16_t boxY = 32;
+  uint16_t boxW = 112;
+  uint16_t boxH = 66;
+  ST7735_FillScreen(ST7735_BLACK);
+  ST7735_FillRect(boxX, boxY, boxW, boxH, ST7735_WHITE);
+  ST7735_FillRect(boxX + 2, boxY + 2, boxW - 4, boxH - 4, ST7735_BLACK);
+  ST7735_SetTextColor(ST7735_WHITE);
+  ST7735_SetCursor(2, 5);
+  ST7735_OutString("Return to Main Menu?");
+  ST7735_SetCursor(2, 7);
+  ST7735_OutString("Unsaved progress");
+  ST7735_SetCursor(2, 8);
+  ST7735_OutString("will be lost.");
+  ST7735_SetCursor(3, 10);
+  if(confirmYesSelected){
+    ST7735_OutString("> Y      N");
+  }else{
+    ST7735_OutString("  Y    > N");
+  }
+  ST7735_SetCursor(0, 13);
+  ST7735_OutString("L/R select, A confirm");
+}
+
+static void ResetGameProgress(void){
+  worldX = 0;
+  worldY = 0;
+  oldWorldX = 255;
+  oldWorldY = 255;
+  if(player){
+    player->x = 0;
+    player->y = 0;
+  }
+}
+
 void handleButtons(void){
   if(buttonState == oldButtonState) return;
   else{
+    uint32_t changed = buttonState ^ oldButtonState;
+    uint8_t aPressed = ((changed & BUTTON_A_MASK) != 0) && ((buttonState & BUTTON_A_MASK) != 0);
+    if(gMode == MODE_MAIN_MENU){
+      if(aPressed){
+        requestStartGame = 1;
+      }
+      oldButtonState = buttonState;
+      return;
+    }
+    if(gMode == MODE_TUTORIAL){
+      if(aPressed){
+        requestContinueFromTutorial = 1;
+      }
+      oldButtonState = buttonState;
+      return;
+    }
+    if(gMode == MODE_CONFIRM_RETURN){
+      if(((changed & BUTTON_LEFT_MASK) != 0) && ((buttonState & BUTTON_LEFT_MASK) != 0)){
+        confirmYesSelected = 1;
+      }
+      if(((changed & BUTTON_RIGHT_MASK) != 0) && ((buttonState & BUTTON_RIGHT_MASK) != 0)){
+        confirmYesSelected = 0;
+      }
+      if(aPressed){
+        if(confirmYesSelected){
+          requestConfirmReturn = 1;
+        }else{
+          requestCancelReturn = 1;
+        }
+      }
+      oldButtonState = buttonState;
+      return;
+    }
     // DEBOUNCING (WAIT FUNCTION CAN GO HERE)
-    if((buttonState & 0b1) != oldButtonState){                  // RIGHT
+    if((buttonState & BUTTON_ESC_MASK) == BUTTON_ESC_MASK && (oldButtonState & BUTTON_ESC_MASK) != BUTTON_ESC_MASK){
+      requestOpenEscapePrompt = 1;
+      oldButtonState = buttonState;
+      return;
+    }
+    if((buttonState & 0b1) != (oldButtonState & 0b1)){                  // RIGHT
         if((buttonState & 0b1) == 1){ //RISING EDGE DETECTION
           //worldX = (worldX+1) %2;
           Entity_TryMove(player, 1, 0, getTileMap(worldMap, worldX, worldY));
@@ -110,16 +249,6 @@ void handleButtons(void){
         } else {                      //FALLING EDGE
 
       }
-    if(((buttonState) & 0b1111) != (oldButtonState)){    // ALL
-        if(((buttonState) & 0b1111) == 0b1111){ //RISING EDGE DETECTION
-          //worldY = (worldY+1) %2;
-          worldX = (worldX +1)% MAXWORLD_SIZE;
-          worldY = (worldY +1)% MAXWORLD_SIZE;
-
-        } else {                      //FALLING EDGE
-
-      }
-    }
   }
   
   oldButtonState = buttonState;
@@ -223,25 +352,62 @@ int main(void){ // main testing
   DRAWREADY = false;              //initialize draw flag
   TimerG12_IntArm(80000000/30,2);
   __enable_irq();
+  DrawMainMenu();
 
   while(1){
     //Entity_Update(block);
     //Entity_PrintSelf(block);
     //Entity_Update(Entity *e);
     if(!DRAWREADY) continue; //pass until draw flag is set
-    if(oldWorldX != worldX || oldWorldY != worldY){
-      drawRoom(worldMap, worldX, worldY);
-      oldWorldX = worldX;
-      oldWorldY = worldY;
+    if(requestStartGame){
+      requestStartGame = 0;
+      gMode = MODE_TUTORIAL;
+      DrawTutorial();
     }
-    drawEntities(entList, worldMap, worldX, worldY);
-    ST7735_SetCursor(0, 10);
-    ST7735_OutUDec(Switch_In());
-
-    ST7735_SetCursor(2, 10);
-    ST7735_OutUDec(worldX);
-    ST7735_OutChar(' ');
-    ST7735_OutUDec(worldY);
+    if(requestContinueFromTutorial){
+      requestContinueFromTutorial = 0;
+      ResetGameProgress();
+      gMode = MODE_PLAYING;
+      ST7735_FillScreen(ST7735_BLACK);
+      oldWorldX = 255;
+      oldWorldY = 255;
+    }
+    if(requestOpenEscapePrompt){
+      requestOpenEscapePrompt = 0;
+      gMode = MODE_CONFIRM_RETURN;
+      confirmYesSelected = 0;
+      DrawConfirmReturnDialog();
+    }
+    if(requestConfirmReturn){
+      requestConfirmReturn = 0;
+      gMode = MODE_MAIN_MENU;
+      DrawMainMenu();
+    }
+    if(requestCancelReturn){
+      requestCancelReturn = 0;
+      gMode = MODE_PLAYING;
+      ST7735_FillScreen(ST7735_BLACK);
+      oldWorldX = 255;
+      oldWorldY = 255;
+    }
+    if(gMode == MODE_PLAYING){
+      if(oldWorldX != worldX || oldWorldY != worldY){
+        drawRoom(worldMap, worldX, worldY);
+        oldWorldX = worldX;
+        oldWorldY = worldY;
+      }
+      drawEntities(entList, worldMap, worldX, worldY);
+      DrawTopBanner();
+      ST7735_SetTextColor(ST7735_WHITE);
+      ST7735_SetCursor(0, 2);
+      ST7735_OutString("Room:");
+      ST7735_OutUDec(worldX);
+      ST7735_OutChar(',');
+      ST7735_OutUDec(worldY);
+      ST7735_SetCursor(0, 3);
+      ST7735_OutString("Btns:");
+      ST7735_OutUDec(Switch_In());
+    }
 
     
     DRAWREADY = false;
