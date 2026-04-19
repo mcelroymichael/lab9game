@@ -22,6 +22,8 @@ static uint8_t gGameplayLoaded = 0;
 static uint8_t gScreenDirty = 1;
 static bool Changed = 0;
 static uint8_t gNeedsFullGameplayRedraw = 1;
+static uint8_t gForceHUDRedraw = 1;
+static uint8_t gForceHealthRedraw = 1;
 
 static Room testRoom1, testRoom2, testRoom3, NULLROOM;
 
@@ -97,6 +99,9 @@ static void Gameplay_CommitMove(void);
 static void Gameplay_CommitAttack(void);
 static void Gameplay_DrawHUD(void);
 static void Gameplay_DrawRangeHighlights(void);
+static void Gameplay_DrawHighlightAtTile(uint8_t tileX, uint8_t tileY);
+static void Gameplay_DrawEntityAtTile(uint8_t tileX, uint8_t tileY);
+static void Gameplay_RedrawTile(uint8_t tileX, uint8_t tileY, uint8_t includeCursor);
 static void Gameplay_DrawCursor(void);
 static void Gameplay_DrawTargetMarker(void);
 static void Gameplay_DrawHealthBar(void);
@@ -454,12 +459,27 @@ static void GameState_HandleReleasedGameplay(GameButton button){
 }
 
 static void GameState_DrawGameplay(void){
+    uint8_t cursorMoved = (uint8_t)(gOldCursorX != gCursorX || gOldCursorY != gCursorY);
     if(gNeedsFullGameplayRedraw || oldWorldX != worldX || oldWorldY != worldY){
       drawRoom(worldMap, worldX, worldY);
       Gameplay_DrawRangeHighlights();
+      drawEntities(entList, worldMap, worldX, worldY);
+      Gameplay_DrawTargetMarker();
+      Gameplay_DrawCursor();
+      gForceHUDRedraw = 1;
+      gForceHealthRedraw = 1;
       oldWorldX = worldX;
       oldWorldY = worldY;
       gNeedsFullGameplayRedraw = 0;
+    } else if(cursorMoved){
+      if(gOldCursorX < 8 && gOldCursorY < 8){
+        Gameplay_RedrawTile(gOldCursorX, gOldCursorY, 0);
+      }
+      Gameplay_RedrawTile(gCursorX, gCursorY, 1);
+    } else {
+      Gameplay_DrawTargetMarker();
+      Gameplay_DrawCursor();
+    }
     }
     drawEntities(entList, worldMap, worldX, worldY);
     Gameplay_DrawTargetMarker();
@@ -472,6 +492,8 @@ static void Gameplay_InitTurnState(void){
     gEnergyRemaining = gMovementEnergyMax;
     gTurnMode = TURNMODE_MOVE;
     gSelectedAttackMove = gPlayerStyle;
+    gForceHUDRedraw = 1;
+    gForceHealthRedraw = 1;
     Gameplay_ResetCursorToPlayer();
 }
 
@@ -670,8 +692,31 @@ static void Gameplay_CommitAttack(void){
 }
 
 static void Gameplay_DrawHUD(void){
+    static uint8_t prevTurnMode = 255;
+    static uint8_t prevAttackMove = 255;
+    static uint8_t prevEnergy = 255;
+    static uint8_t prevPreview = 255;
+    static uint8_t prevEnemyPresent = 255;
+    static uint8_t prevEnemyHP = 255;
+    static uint8_t prevEnemyATK = 255;
     uint8_t previewEnergy;
     Entity* hoveredEnemy = Gameplay_FindAttackTargetAtCursor();
+    uint8_t enemyPresent = (uint8_t)(gTurnMode == TURNMODE_ATTACK && hoveredEnemy != 0);
+    uint8_t enemyHP = enemyPresent ? (uint8_t)hoveredEnemy->data0 : 255;
+    uint8_t enemyATK = enemyPresent ? (uint8_t)hoveredEnemy->data1 : 255;
+    previewEnergy = (gTurnMode == TURNMODE_MOVE) ? Gameplay_PreviewEnergyAfterMove() : Gameplay_PreviewEnergyAfterAttack();
+
+    if(!gForceHUDRedraw &&
+       prevTurnMode == gTurnMode &&
+       prevAttackMove == gSelectedAttackMove &&
+       prevEnergy == gEnergyRemaining &&
+       prevPreview == previewEnergy &&
+       prevEnemyPresent == enemyPresent &&
+       prevEnemyHP == enemyHP &&
+       prevEnemyATK == enemyATK){
+        return;
+    }
+
     ST7735_SetCursor(0, 9);
     ST7735_OutString("                ");
     ST7735_SetCursor(0, 10);
@@ -702,6 +747,85 @@ static void Gameplay_DrawHUD(void){
     } else {
         ST7735_OutUDec(previewEnergy);
         ST7735_OutString("     ");
+    }
+    prevTurnMode = gTurnMode;
+    prevAttackMove = gSelectedAttackMove;
+    prevEnergy = gEnergyRemaining;
+    prevPreview = previewEnergy;
+    prevEnemyPresent = enemyPresent;
+    prevEnemyHP = enemyHP;
+    prevEnemyATK = enemyATK;
+    gForceHUDRedraw = 0;
+}
+
+static void Gameplay_DrawRangeHighlights(void){
+    uint8_t x;
+    uint8_t y;
+    for(y = 0; y < 8; y++){
+        for(x = 0; x < 8; x++){
+            if(gTurnMode == TURNMODE_MOVE){
+                uint8_t moveCost = 255;
+                if(Gameplay_IsTileReachableByPlayer(x, y, gEnergyRemaining, &moveCost) &&
+                   !(x == player->tileX && y == player->tileY)){
+                    ST7735_DrawBitmap((x * 12) + 3, (y * 12) + 9, moveIcon, 6, 8);
+                }
+            } else if(gTurnMode == TURNMODE_ATTACK){
+                uint8_t range = (gSelectedAttackMove == PLAYERSTYLE_MELEE) ? 1 : 4;
+                uint8_t distance = (uint8_t)(abs((int16_t)x - player->tileX) + abs((int16_t)y - player->tileY));
+                if(distance <= range){
+                    const uint16_t* iconToDraw = (gSelectedAttackMove == PLAYERSTYLE_MELEE) ? meleeIcon : rangedIcon;
+                    ST7735_DrawBitmap((x * 12) + 3, (y * 12) + 9, iconToDraw, 6, 8);
+                }
+            }
+        }
+    }
+}
+
+static void Gameplay_DrawHighlightAtTile(uint8_t tileX, uint8_t tileY){
+    if(gTurnMode == TURNMODE_MOVE){
+        uint8_t moveCost = 255;
+        if(Gameplay_IsTileReachableByPlayer(tileX, tileY, gEnergyRemaining, &moveCost) &&
+           !(tileX == player->tileX && tileY == player->tileY)){
+            ST7735_DrawBitmap((tileX * 12) + 2, (tileY * 12) + 9, blueBlock, 8, 8);
+        }
+    } else if(gTurnMode == TURNMODE_ATTACK){
+        uint8_t range = (gSelectedAttackMove == PLAYERSTYLE_MELEE) ? 1 : 4;
+        uint8_t distance = (uint8_t)(abs((int16_t)tileX - player->tileX) + abs((int16_t)tileY - player->tileY));
+        if(distance <= range){
+            ST7735_DrawBitmap((tileX * 12) + 2, (tileY * 12) + 9, yellowBlock, 8, 8);
+        }
+    }
+}
+
+static void Gameplay_DrawEntityAtTile(uint8_t tileX, uint8_t tileY){
+    uint8_t i;
+    for(i = 0; i < MAXENTITIES; i++){
+        int16_t drawX;
+        int16_t tileTopY;
+        int16_t spriteTopY;
+        int16_t drawY;
+        Entity* e = &entList[i];
+        if(!e->active) continue;
+        if(e->tileX != tileX || e->tileY != tileY) continue;
+        drawX = (int16_t)tileX * 12 + ((int16_t)12 - (int16_t)e->width) / 2;
+        tileTopY = (int16_t)tileY * 12;
+        spriteTopY = tileTopY + ((int16_t)12 - (int16_t)e->height) / 2;
+        drawY = spriteTopY + e->height - 1;
+        ST7735_DrawBitmap(drawX, drawY, e->bitmap, e->width, e->height);
+    }
+}
+
+static void Gameplay_RedrawTile(uint8_t tileX, uint8_t tileY, uint8_t includeCursor){
+    drawRoomTile(worldMap, worldX, worldY, tileX, tileY);
+    Gameplay_DrawHighlightAtTile(tileX, tileY);
+    Gameplay_DrawEntityAtTile(tileX, tileY);
+    if(gTurnMode == TURNMODE_ATTACK && Gameplay_CanAttackTarget() &&
+       tileX == gCursorX && tileY == gCursorY){
+        ST7735_DrawBitmap(tileX * 12, (tileY + 1) * 12 - 1, redtile, 12, 12);
+        Gameplay_DrawEntityAtTile(tileX, tileY);
+    }
+    if(includeCursor && tileX == gCursorX && tileY == gCursorY){
+        ST7735_DrawBitmap((tileX * 12) + 2, (tileY * 12) + 9, yellowBlock, 8, 8);
     }
 }
 
@@ -748,10 +872,15 @@ static void Gameplay_DrawTargetMarker(void){
 }
 
 static void Gameplay_DrawHealthBar(void){
+    static uint8_t prevHealth = 255;
+    static uint8_t prevHealthMax = 255;
     uint8_t i;
     uint8_t barX = 108;
     uint8_t barStartY = 92;
-    ST7735_SetCursor(16, 0);
+    if(!gForceHealthRedraw && prevHealth == gPlayerHealth && prevHealthMax == gPlayerHealthMax){
+        return;
+    }
+    ST7735_SetCursor(14, 0);
     ST7735_OutString("HP");
     for(i = 0; i < gPlayerHealthMax; i++){
         uint8_t y = (uint8_t)(barStartY - (i * 8));
@@ -761,4 +890,7 @@ static void Gameplay_DrawHealthBar(void){
             ST7735_DrawBitmap(barX, y, bluetile, 12, 12);
         }
     }
+    prevHealth = gPlayerHealth;
+    prevHealthMax = gPlayerHealthMax;
+    gForceHealthRedraw = 0;
 }
