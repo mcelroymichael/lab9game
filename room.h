@@ -4,6 +4,8 @@
 #include <stdint.h>
 
 #define MAXWORLD_SIZE 2
+#define ROOM_TILE_WIDTH 8
+#define ROOM_TILE_HEIGHT 10
 
 typedef struct{
     const uint32_t* tilemap;

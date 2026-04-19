@@ -34,9 +34,9 @@ extern const uint16_t rangedIcon[48];
 extern const uint16_t cursor[16];
 extern const uint16_t logo[10240];
 extern const uint16_t enemy1[64];
-extern const uint32_t tilemap1[64];
-extern const uint32_t tilemap2[64];
-extern const uint32_t tilemap3[64];
+extern const uint32_t tilemap1[80];
+extern const uint32_t tilemap2[80];
+extern const uint32_t tilemap3[80];
 
 typedef struct{
     uint8_t destinationWorldX;

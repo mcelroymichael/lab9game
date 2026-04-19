@@ -3,8 +3,8 @@
 #include "graphics.h"
 #include "room.h"
 
-#define MAP_WIDTH      8
-#define MAP_HEIGHT     8
+#define MAP_WIDTH      ROOM_TILE_WIDTH
+#define MAP_HEIGHT     ROOM_TILE_HEIGHT
 #define TILE_SIZE      12
 #define BLOCKED_TILE   1u
 
