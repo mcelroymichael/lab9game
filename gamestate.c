@@ -9,6 +9,7 @@
 #include "Switch.h"
 
 extern volatile uint32_t potState;
+extern uint32_t Convert(uint32_t input);
 
 #define MENU_OPTION_COUNT 2
 #define LANGUAGE_OPTION_COUNT 2
@@ -658,7 +659,7 @@ static void Gameplay_UpdateEnergySplitFromADC(void){
         raw = 4095u;
     }
     gLatestADC = raw;
-    gLatestADCCm = (raw * 20u) / 4095u;
+    gLatestADCCm = Convert(raw);
     moveEnergy = (uint8_t)((raw * (gMovementEnergyMax + 1u)) / 4096u);
     if(moveEnergy > gMovementEnergyMax){
         moveEnergy = gMovementEnergyMax;
