@@ -49,7 +49,8 @@ Entity entList[MAXENTITIES];
 
 uint8_t worldX, worldY, oldWorldX, oldWorldY;
 uint32_t buttonState, oldButtonState; 
-uint32_t potState, oldPotState; 
+volatile uint32_t potState;
+uint32_t oldPotState; 
 
 bool DRAWREADY;
 
