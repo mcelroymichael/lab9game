@@ -1309,8 +1309,10 @@ static void Gameplay_DrawHealthBar(void){
     static uint8_t prevMoveEnergy = 255;
     static uint8_t prevAttackEnergy = 255;
     uint8_t i;
-    uint8_t barX = 108;
-    uint8_t barStartY = 88;
+    const uint8_t barX = 108;
+    const uint8_t barBottomY = 95;
+    const uint8_t barStep = 8;
+    const uint8_t hpLabelBottomY = 7;
     if(!gForceHealthRedraw &&
        prevHealth == gPlayerHealth &&
        prevHealthMax == gPlayerHealthMax &&
@@ -1322,7 +1324,11 @@ static void Gameplay_DrawHealthBar(void){
     ST7735_SetCursor(18, 0);
     ST7735_OutString(GameState_LocalizedText("HP", "HP"));
     for(i = 0; i < gPlayerHealthMax; i++){
-        uint8_t y = (uint8_t)(barStartY - (i * 8));
+        uint8_t y = (uint8_t)(barBottomY - (i * barStep));
+        int16_t tileTopY = (int16_t)y - 11;
+        if(tileTopY <= (int16_t)hpLabelBottomY){
+            break;
+        }
         if(i < gPlayerHealth){
             ST7735_DrawBitmap(barX, y, redtile, 12, 12);
         } else {
