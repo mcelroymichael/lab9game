@@ -161,7 +161,7 @@ static void Gameplay_AnimateEnemyStep(Entity* enemy, uint8_t oldX, uint8_t oldY)
 static uint8_t Gameplay_IsTileOccupiedByEnemy(uint8_t tileX, uint8_t tileY, const Entity* ignoreEnemy);
 static uint8_t Gameplay_HasAliveEnemies(void);
 static void Gameplay_Shutdown(void);
-static const char* GameState_LocalizedText(const char* english, const char* spanish);
+static char* GameState_LocalizedText(char* english, char* spanish);
 
 // ------------------------------------------------------------
 // Public API
@@ -356,7 +356,7 @@ static void GameState_DrawLanguageSelect(void){
     }
 }
 
-static const char* GameState_LocalizedText(const char* english, const char* spanish){
+static char* GameState_LocalizedText(char* english, char* spanish){
     if(gLanguage == LANGUAGE_SPANISH){
         return spanish;
     }
