@@ -1103,6 +1103,7 @@ static void Gameplay_DrawHUD(void){
            prevEnemyATK == enemyATK){
             return;
         }
+        Gameplay_ClearHUDRow(11);
         Gameplay_ClearHUDRow(12);
         Gameplay_ClearHUDRow(13);
         Gameplay_ClearHUDRow(14);
@@ -1115,39 +1116,41 @@ static void Gameplay_DrawHUD(void){
         Gameplay_DrawTurnBanner();
         if(!gSelectingGridAction){
             if(gPlayerMenuState == PLAYERMENU_ROOT){
+                ST7735_SetCursor(0, 12);
+                ST7735_OutString("Player");
                 ST7735_SetCursor(0, 13);
                 ST7735_OutString(gRootMenuSelection == 0 ? "> Act" : "  Act");
                 ST7735_SetCursor(0, 14);
                 ST7735_OutString(gRootMenuSelection == 1 ? "> Move" : "  Move");
             } else {
+                ST7735_SetCursor(0, 12);
+                ST7735_OutString("Player --> Act");
                 ST7735_SetCursor(0, 13);
-                ST7735_OutString("Act Menu");
-                ST7735_SetCursor(0, 14);
                 ST7735_OutString(gActMenuSelection == 0 ? "> Melee" : "  Melee");
-                ST7735_SetCursor(0, 15);
+                ST7735_SetCursor(0, 14);
                 ST7735_OutString(gActMenuSelection == 1 ? "> Ranged" : "  Ranged");
-                ST7735_SetCursor(0, 16);
+                ST7735_SetCursor(0, 15);
                 ST7735_OutString(gActMenuSelection == 2 ? "> Skill*" : "  Skill*");
-                ST7735_SetCursor(0, 17);
+                ST7735_SetCursor(0, 16);
                 ST7735_OutString("*coming soon");
             }
         } else {
-            ST7735_SetCursor(0, 13);
+            ST7735_SetCursor(0, 12);
             if(gTurnMode == TURNMODE_MOVE){
-                ST7735_OutString("Move target");
+                ST7735_OutString("Player --> Move");
             } else {
-                ST7735_OutString("Act target");
+                ST7735_OutString("Player --> Act");
             }
-            ST7735_SetCursor(0, 14);
+            ST7735_SetCursor(0, 13);
             ST7735_OutString("A=Confirm B=Back");
             if(enemyPresent){
-                ST7735_SetCursor(0, 15);
+                ST7735_SetCursor(0, 14);
                 ST7735_OutString("Enemy HP:");
                 ST7735_OutUDec(enemyHP);
                 ST7735_OutString(" ATK:");
                 ST7735_OutUDec(enemyATK);
             }
-            ST7735_SetCursor(0, 16);
+            ST7735_SetCursor(0, 15);
             ST7735_OutString("E:");
             ST7735_OutUDec(Gameplay_CurrentModeEnergyRemaining());
             ST7735_OutString("->");
@@ -1157,13 +1160,12 @@ static void Gameplay_DrawHUD(void){
                 ST7735_OutUDec(previewEnergy);
             }
         }
-        ST7735_SetCursor(0, 19);
-        ST7735_OutString("Lv:");
-        ST7735_OutUDec(gCurrentStage);
-        ST7735_OutString("/3 M:");
-        ST7735_OutUDec(gMoveEnergyRemaining);
-        ST7735_OutString(" A:");
-        ST7735_OutUDec(gAttackEnergyRemaining);
+        {
+            char statusLine[20];
+            snprintf(statusLine, sizeof(statusLine), "Lv%u M%u A%u", gCurrentStage, gMoveEnergyRemaining, gAttackEnergyRemaining);
+            ST7735_SetCursor(12, 19);
+            ST7735_OutString(statusLine);
+        }
         prevTurnMode = gTurnMode;
         prevAttackMove = gSelectedAttackMove;
         prevRootSel = gRootMenuSelection;
@@ -1181,7 +1183,7 @@ static void Gameplay_DrawHUD(void){
 }
 
 static void Gameplay_DrawTurnBanner(void){
-    ST7735_FillRect(0, 96, 128, 8, ST7735_BLUE);
+    ST7735_FillRect(0, 88, 128, 8, ST7735_BLUE);
 }
 
 static void Gameplay_DrawRangeHighlights(void){
