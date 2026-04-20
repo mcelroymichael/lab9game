@@ -1305,10 +1305,18 @@ static void Gameplay_DrawTargetMarker(void){
 static void Gameplay_DrawHealthBar(void){
     static uint8_t prevHealth = 255;
     static uint8_t prevHealthMax = 255;
+    static uint8_t prevStage = 255;
+    static uint8_t prevMoveEnergy = 255;
+    static uint8_t prevAttackEnergy = 255;
     uint8_t i;
     uint8_t barX = 108;
     uint8_t barStartY = 88;
-    if(!gForceHealthRedraw && prevHealth == gPlayerHealth && prevHealthMax == gPlayerHealthMax){
+    if(!gForceHealthRedraw &&
+       prevHealth == gPlayerHealth &&
+       prevHealthMax == gPlayerHealthMax &&
+       prevStage == gCurrentStage &&
+       prevMoveEnergy == gMoveEnergyRemaining &&
+       prevAttackEnergy == gAttackEnergyRemaining){
         return;
     }
     ST7735_SetCursor(18, 0);
@@ -1332,6 +1340,9 @@ static void Gameplay_DrawHealthBar(void){
     ST7735_OutUDec(gAttackEnergyRemaining);
     prevHealth = gPlayerHealth;
     prevHealthMax = gPlayerHealthMax;
+    prevStage = gCurrentStage;
+    prevMoveEnergy = gMoveEnergyRemaining;
+    prevAttackEnergy = gAttackEnergyRemaining;
     gForceHealthRedraw = 0;
 }
 
