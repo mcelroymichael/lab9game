@@ -1177,9 +1177,7 @@ static void Gameplay_DrawHUD(void){
             }
         }
         ST7735_SetCursor(0, 19);
-        ST7735_OutString(GameState_LocalizedText("Lv:", "Nv:"));
-        ST7735_OutUDec(gCurrentStage);
-        ST7735_OutString(GameState_LocalizedText("/3 M:", "/3 M:"));
+        ST7735_OutString(GameState_LocalizedText("M:", "M:"));
         ST7735_OutUDec(gMoveEnergyRemaining);
         ST7735_OutString(GameState_LocalizedText(" A:", " A:"));
         ST7735_OutUDec(gAttackEnergyRemaining);
@@ -1317,7 +1315,7 @@ static void Gameplay_DrawHealthBar(void){
         return;
     }
     ST7735_SetCursor(18, 0);
-    ST7735_OutString(GameState_LocalizedText("HP", "PV"));
+    ST7735_OutString(GameState_LocalizedText("HP", "HP"));
     for(i = 0; i < gPlayerHealthMax; i++){
         uint8_t y = (uint8_t)(barStartY - (i * 8));
         if(i < gPlayerHealth){
@@ -1326,6 +1324,10 @@ static void Gameplay_DrawHealthBar(void){
             ST7735_DrawBitmap(barX, y, bluetile, 12, 12);
         }
     }
+    ST7735_SetCursor(16, 12);
+    ST7735_OutString(GameState_LocalizedText("Lv:", "Nv:"));
+    ST7735_OutUDec(gCurrentStage);
+    ST7735_OutString("/3");
     prevHealth = gPlayerHealth;
     prevHealthMax = gPlayerHealthMax;
     gForceHealthRedraw = 0;
@@ -1404,7 +1406,7 @@ static void Gameplay_DrawEnemyTurnSummary(void){
     ST7735_SetCursor(0, 12);
     ST7735_OutString(GameState_LocalizedText("ENEMY TURN", "TURNO ENEMIGO"));
     ST7735_SetCursor(0, 13);
-    ST7735_OutString(GameState_LocalizedText("HP:", "PV:"));
+    ST7735_OutString(GameState_LocalizedText("HP:", "HP:"));
     ST7735_OutUDec(gEnemyTurnHPBefore);
     ST7735_OutString("->");
     ST7735_OutUDec(gEnemyTurnHPAfter);
