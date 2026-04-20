@@ -1317,7 +1317,7 @@ static void Gameplay_DrawHealthBar(void){
     static uint8_t prevAttackEnergy = 255;
     uint8_t i;
     uint8_t barX = 108;
-    uint8_t barStartY = 92;
+    uint8_t barStartY = 96;
     uint8_t barStep = 8;
     if(!gForceHealthRedraw &&
        prevHealth == gPlayerHealth &&
@@ -1472,7 +1472,7 @@ static void Gameplay_AcknowledgeEnemyTurnSummary(void){
 }
 
 static void Gameplay_ClearHUDRow(uint8_t row){
-    ST7735_FillRect(0, (uint16_t)(row * 8), 128, 8, ST7735_BLACK);
+    ST7735_FillRect(0, (uint16_t)(row * 8), 96, 8, ST7735_BLACK);
 }
 
 static void Gameplay_LoadStage(uint8_t stage){
