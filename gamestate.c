@@ -1309,6 +1309,7 @@ static void Gameplay_DrawTargetMarker(void){
     }
 }
 
+<<<<<<< HEAD
 static void Gameplay_DrawHealthBar(void){
     static uint8_t prevHealth = 255;
     static uint8_t prevHealthMax = 255;
@@ -1327,6 +1328,17 @@ static void Gameplay_DrawHealthBar(void){
        prevAttackEnergy == gAttackEnergyRemaining){
         return;
     }
+=======
+static void Gameplay_DrawHealthBar(void){
+    static uint8_t prevHealth = 255;
+    static uint8_t prevHealthMax = 255;
+    uint8_t i;
+    uint8_t barX = 108;
+    uint8_t barStartY = 88;
+    if(!gForceHealthRedraw && prevHealth == gPlayerHealth && prevHealthMax == gPlayerHealthMax){
+        return;
+    }
+>>>>>>> parent of a5513be (Fix M/A HUD refresh when energy values change)
     ST7735_SetCursor(18, 0);
     ST7735_OutString(GameState_LocalizedText("HP", "HP"));
     for(i = 0; i < gPlayerHealthMax; i++){
@@ -1348,9 +1360,6 @@ static void Gameplay_DrawHealthBar(void){
     ST7735_OutUDec(gAttackEnergyRemaining);
     prevHealth = gPlayerHealth;
     prevHealthMax = gPlayerHealthMax;
-    prevStage = gCurrentStage;
-    prevMoveEnergy = gMoveEnergyRemaining;
-    prevAttackEnergy = gAttackEnergyRemaining;
     gForceHealthRedraw = 0;
 }
 
