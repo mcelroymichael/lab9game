@@ -161,6 +161,7 @@ static void Gameplay_AnimateEnemyStep(Entity* enemy, uint8_t oldX, uint8_t oldY)
 static uint8_t Gameplay_IsTileOccupiedByEnemy(uint8_t tileX, uint8_t tileY, const Entity* ignoreEnemy);
 static uint8_t Gameplay_HasAliveEnemies(void);
 static void Gameplay_Shutdown(void);
+static const char* GameState_LocalizedText(const char* english, const char* spanish);
 
 // ------------------------------------------------------------
 // Public API
@@ -353,6 +354,13 @@ static void GameState_DrawLanguageSelect(void){
         ST7735_SetCursor(2, 6);
         ST7735_OutString(gLanguageSelection == 1 ? "> Espanol" : "  Espanol");
     }
+}
+
+static const char* GameState_LocalizedText(const char* english, const char* spanish){
+    if(gLanguage == LANGUAGE_SPANISH){
+        return spanish;
+    }
+    return english;
 }
 
 // ------------------------------------------------------------
@@ -1113,39 +1121,49 @@ static void Gameplay_DrawHUD(void){
         Gameplay_ClearHUDRow(20);
         Gameplay_DrawTurnBanner();
         ST7735_SetCursor(0, 13);
-        ST7735_OutString("Player");
+        ST7735_OutString(GameState_LocalizedText("Player", "Jugador"));
         if(!gSelectingGridAction){
             if(gPlayerMenuState == PLAYERMENU_ROOT){
                 ST7735_SetCursor(0, 14);
-                ST7735_OutString(gRootMenuSelection == 0 ? "> Act" : "  Act");
+                ST7735_OutString(gRootMenuSelection == 0
+                                     ? GameState_LocalizedText("> Act", "> Actuar")
+                                     : GameState_LocalizedText("  Act", "  Actuar"));
                 ST7735_SetCursor(0, 15);
-                ST7735_OutString(gRootMenuSelection == 1 ? "> Move" : "  Move");
+                ST7735_OutString(gRootMenuSelection == 1
+                                     ? GameState_LocalizedText("> Move", "> Mover")
+                                     : GameState_LocalizedText("  Move", "  Mover"));
             } else {
                 ST7735_SetCursor(0, 14);
-                ST7735_OutString("Act Menu");
+                ST7735_OutString(GameState_LocalizedText("Act Menu", "Menu Actuar"));
                 ST7735_SetCursor(0, 15);
-                ST7735_OutString(gActMenuSelection == 0 ? "> Melee" : "  Melee");
+                ST7735_OutString(gActMenuSelection == 0
+                                     ? GameState_LocalizedText("> Melee", "> Cuerpo a cuerpo")
+                                     : GameState_LocalizedText("  Melee", "  Cuerpo a cuerpo"));
                 ST7735_SetCursor(0, 16);
-                ST7735_OutString(gActMenuSelection == 1 ? "> Ranged" : "  Ranged");
+                ST7735_OutString(gActMenuSelection == 1
+                                     ? GameState_LocalizedText("> Ranged", "> Distancia")
+                                     : GameState_LocalizedText("  Ranged", "  Distancia"));
                 ST7735_SetCursor(0, 17);
-                ST7735_OutString(gActMenuSelection == 2 ? "> Skill*" : "  Skill*");
+                ST7735_OutString(gActMenuSelection == 2
+                                     ? GameState_LocalizedText("> Skill*", "> Habilidad*")
+                                     : GameState_LocalizedText("  Skill*", "  Habilidad*"));
                 ST7735_SetCursor(0, 18);
-                ST7735_OutString("*coming soon");
+                ST7735_OutString(GameState_LocalizedText("*coming soon", "*proximamente"));
             }
         } else {
             ST7735_SetCursor(0, 14);
             if(gTurnMode == TURNMODE_MOVE){
-                ST7735_OutString("Move target");
+                ST7735_OutString(GameState_LocalizedText("Move target", "Mover objetivo"));
             } else {
-                ST7735_OutString("Act target");
+                ST7735_OutString(GameState_LocalizedText("Act target", "Atacar objetivo"));
             }
             ST7735_SetCursor(0, 15);
-            ST7735_OutString("A=Confirm B=Back");
+            ST7735_OutString(GameState_LocalizedText("A=Confirm B=Back", "A=Confirmar B=Volver"));
             if(enemyPresent){
                 ST7735_SetCursor(0, 16);
-                ST7735_OutString("Enemy HP:");
+                ST7735_OutString(GameState_LocalizedText("Enemy HP:", "Vida enem.:"));
                 ST7735_OutUDec(enemyHP);
-                ST7735_OutString(" ATK:");
+                ST7735_OutString(GameState_LocalizedText(" ATK:", " ATQ:"));
                 ST7735_OutUDec(enemyATK);
             }
             ST7735_SetCursor(0, 17);
@@ -1153,17 +1171,17 @@ static void Gameplay_DrawHUD(void){
             ST7735_OutUDec(Gameplay_CurrentModeEnergyRemaining());
             ST7735_OutString("->");
             if(previewEnergy == 255){
-                ST7735_OutString("TooExp");
+                ST7735_OutString(GameState_LocalizedText("TooExp", "Muy caro"));
             } else {
                 ST7735_OutUDec(previewEnergy);
             }
         }
         ST7735_SetCursor(0, 19);
-        ST7735_OutString("Lv:");
+        ST7735_OutString(GameState_LocalizedText("Lv:", "Nv:"));
         ST7735_OutUDec(gCurrentStage);
-        ST7735_OutString("/3 M:");
+        ST7735_OutString(GameState_LocalizedText("/3 M:", "/3 M:"));
         ST7735_OutUDec(gMoveEnergyRemaining);
-        ST7735_OutString(" A:");
+        ST7735_OutString(GameState_LocalizedText(" A:", " A:"));
         ST7735_OutUDec(gAttackEnergyRemaining);
         prevTurnMode = gTurnMode;
         prevAttackMove = gSelectedAttackMove;
@@ -1184,7 +1202,7 @@ static void Gameplay_DrawHUD(void){
 static void Gameplay_DrawTurnBanner(void){
     ST7735_FillRect(0, 96, 128, 8, ST7735_BLUE);
     ST7735_SetCursor(0, 12);
-    ST7735_OutString("PLAYER TURN");
+    ST7735_OutString(GameState_LocalizedText("PLAYER TURN", "TURNO JUGADOR"));
 }
 
 static void Gameplay_DrawRangeHighlights(void){
@@ -1299,7 +1317,7 @@ static void Gameplay_DrawHealthBar(void){
         return;
     }
     ST7735_SetCursor(18, 0);
-    ST7735_OutString("HP");
+    ST7735_OutString(GameState_LocalizedText("HP", "PV"));
     for(i = 0; i < gPlayerHealthMax; i++){
         uint8_t y = (uint8_t)(barStartY - (i * 8));
         if(i < gPlayerHealth){
@@ -1384,21 +1402,21 @@ static void Gameplay_DrawEnemyTurnSummary(void){
     Gameplay_ClearHUDRow(20);
     ST7735_FillRect(0, 96, 128, 8, ST7735_RED);
     ST7735_SetCursor(0, 12);
-    ST7735_OutString("ENEMY TURN");
+    ST7735_OutString(GameState_LocalizedText("ENEMY TURN", "TURNO ENEMIGO"));
     ST7735_SetCursor(0, 13);
-    ST7735_OutString("HP:");
+    ST7735_OutString(GameState_LocalizedText("HP:", "PV:"));
     ST7735_OutUDec(gEnemyTurnHPBefore);
     ST7735_OutString("->");
     ST7735_OutUDec(gEnemyTurnHPAfter);
     ST7735_SetCursor(0, 14);
-    ST7735_OutString("Hits:");
+    ST7735_OutString(GameState_LocalizedText("Hits:", "Golpes:"));
     ST7735_OutUDec(gEnemyTurnEnemiesAttacked);
-    ST7735_OutString(" Move:");
+    ST7735_OutString(GameState_LocalizedText(" Move:", " Mueve:"));
     ST7735_OutUDec(gEnemyTurnEnemiesMoved);
     ST7735_SetCursor(0, 15);
-    ST7735_OutString("Dmg:");
+    ST7735_OutString(GameState_LocalizedText("Dmg:", "Danio:"));
     ST7735_OutUDec(gEnemyTurnDamageTaken);
-    ST7735_OutString(" A=Next");
+    ST7735_OutString(GameState_LocalizedText(" A=Next", " A=Sigue"));
     gEnemyTurnSummaryDirty = 0;
 }
 
@@ -1613,14 +1631,14 @@ static void GameState_DrawEnding(void){
     ST7735_FillScreen(ST7735_BLACK);
     ST7735_SetCursor(3, 4);
     if(gPlayerWon){
-        ST7735_OutString("You escaped!");
+        ST7735_OutString(GameState_LocalizedText("You escaped!", "Escapaste!"));
         ST7735_SetCursor(1, 7);
-        ST7735_OutString("All 3 levels clear");
+        ST7735_OutString(GameState_LocalizedText("All 3 levels clear", "3 niveles superados"));
     } else {
-        ST7735_OutString("You died!");
+        ST7735_OutString(GameState_LocalizedText("You died!", "Has muerto!"));
         ST7735_SetCursor(1, 7);
-        ST7735_OutString("Health dropped to 0");
+        ST7735_OutString(GameState_LocalizedText("Health dropped to 0", "Vida bajo a 0"));
     }
     ST7735_SetCursor(1, 10);
-    ST7735_OutString("Press A for menu");
+    ST7735_OutString(GameState_LocalizedText("Press A for menu", "Pulsa A para menu"));
 }
