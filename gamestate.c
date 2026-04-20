@@ -1176,11 +1176,6 @@ static void Gameplay_DrawHUD(void){
                 ST7735_OutUDec(previewEnergy);
             }
         }
-        ST7735_SetCursor(0, 18);
-        ST7735_OutString(GameState_LocalizedText("M:", "M:"));
-        ST7735_OutUDec(gMoveEnergyRemaining);
-        ST7735_OutString(GameState_LocalizedText(" A:", " A:"));
-        ST7735_OutUDec(gAttackEnergyRemaining);
         prevTurnMode = gTurnMode;
         prevAttackMove = gSelectedAttackMove;
         prevRootSel = gRootMenuSelection;
@@ -1198,9 +1193,7 @@ static void Gameplay_DrawHUD(void){
 }
 
 static void Gameplay_DrawTurnBanner(void){
-    ST7735_FillRect(0, 88, 128, 8, ST7735_BLUE);
-    ST7735_SetCursor(0, 11);
-    ST7735_OutString(GameState_LocalizedText("PLAYER TURN", "TURNO JUGADOR"));
+    ST7735_FillRect(0, 96, 128, 8, ST7735_BLUE);
 }
 
 static void Gameplay_DrawRangeHighlights(void){
@@ -1327,6 +1320,12 @@ static void Gameplay_DrawHealthBar(void){
     ST7735_SetCursor(15, 11);
     ST7735_OutString(GameState_LocalizedText("Lv:", "Nv:"));
     ST7735_OutUDec(gCurrentStage);
+    ST7735_SetCursor(15, 12);
+    ST7735_OutString("M:");
+    ST7735_OutUDec(gMoveEnergyRemaining);
+    ST7735_SetCursor(15, 13);
+    ST7735_OutString("A:");
+    ST7735_OutUDec(gAttackEnergyRemaining);
     prevHealth = gPlayerHealth;
     prevHealthMax = gPlayerHealthMax;
     gForceHealthRedraw = 0;
@@ -1401,20 +1400,20 @@ static void Gameplay_DrawEnemyTurnSummary(void){
     Gameplay_ClearHUDRow(17);
     Gameplay_ClearHUDRow(18);
     Gameplay_ClearHUDRow(19);
-    ST7735_FillRect(0, 88, 128, 8, ST7735_RED);
-    ST7735_SetCursor(0, 11);
-    ST7735_OutString(GameState_LocalizedText("ENEMY TURN", "TURNO ENEMIGO"));
+    ST7735_FillRect(0, 96, 128, 8, ST7735_RED);
     ST7735_SetCursor(0, 12);
+    ST7735_OutString(GameState_LocalizedText("ENEMY TURN", "TURNO ENEMIGO"));
+    ST7735_SetCursor(0, 13);
     ST7735_OutString(GameState_LocalizedText("HP:", "HP:"));
     ST7735_OutUDec(gEnemyTurnHPBefore);
     ST7735_OutString("->");
     ST7735_OutUDec(gEnemyTurnHPAfter);
-    ST7735_SetCursor(0, 13);
+    ST7735_SetCursor(0, 14);
     ST7735_OutString(GameState_LocalizedText("Hits:", "Golpes:"));
     ST7735_OutUDec(gEnemyTurnEnemiesAttacked);
     ST7735_OutString(GameState_LocalizedText(" Move:", " Mueve:"));
     ST7735_OutUDec(gEnemyTurnEnemiesMoved);
-    ST7735_SetCursor(0, 14);
+    ST7735_SetCursor(0, 15);
     ST7735_OutString(GameState_LocalizedText("Dmg:", "Danio:"));
     ST7735_OutUDec(gEnemyTurnDamageTaken);
     ST7735_OutString(GameState_LocalizedText(" A=Next", " A=Sigue"));
