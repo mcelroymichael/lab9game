@@ -1119,39 +1119,40 @@ static void Gameplay_DrawHUD(void){
         Gameplay_ClearHUDRow(13);
         Gameplay_ClearHUDRow(14);
         Gameplay_ClearHUDRow(15);
-        Gameplay_ClearHUDRow(16);
-        Gameplay_ClearHUDRow(17);
-        Gameplay_ClearHUDRow(18);
         gForceHealthRedraw = 1;
         Gameplay_DrawTurnBanner();
-        ST7735_SetCursor(0, 11);
+        ST7735_SetCursor(0, 10);
         if(!gSelectingGridAction){
             if(gPlayerMenuState == PLAYERMENU_ROOT){
                 ST7735_OutString(GameState_LocalizedText("Player --> Menu", "Jugador-> Menu"));
-                ST7735_SetCursor(0, 12);
+                ST7735_SetCursor(0, 11);
                 ST7735_OutString(gRootMenuSelection == 0
                                      ? GameState_LocalizedText("> Act", "> Actuar")
                                      : GameState_LocalizedText("  Act", "  Actuar"));
-                ST7735_SetCursor(0, 13);
+                ST7735_SetCursor(0, 12);
                 ST7735_OutString(gRootMenuSelection == 1
                                      ? GameState_LocalizedText("> Move", "> Mover")
                                      : GameState_LocalizedText("  Move", "  Mover"));
+                Gameplay_ClearHUDRow(13);
+                Gameplay_ClearHUDRow(14);
+                Gameplay_ClearHUDRow(15);
             } else {
                 ST7735_OutString(GameState_LocalizedText("Player --> Act Menu", "Jugador->Menu Act"));
-                ST7735_SetCursor(0, 12);
+                ST7735_SetCursor(0, 11);
                 ST7735_OutString(gActMenuSelection == 0
                                      ? GameState_LocalizedText("> Melee", "> Cerca")
                                      : GameState_LocalizedText("  Melee", "  Cerca"));
-                ST7735_SetCursor(0, 13);
+                ST7735_SetCursor(0, 12);
                 ST7735_OutString(gActMenuSelection == 1
                                      ? GameState_LocalizedText("> Ranged", "> Distancia")
                                      : GameState_LocalizedText("  Ranged", "  Distancia"));
-                ST7735_SetCursor(0, 14);
+                ST7735_SetCursor(0, 13);
                 ST7735_OutString(gActMenuSelection == 2
                                      ? GameState_LocalizedText("> Skill*", "> Habilidad*")
                                      : GameState_LocalizedText("  Skill*", "  Habilidad*"));
-                ST7735_SetCursor(0, 15);
+                ST7735_SetCursor(0, 14);
                 ST7735_OutString(GameState_LocalizedText("*coming soon", "*proximamente"));
+                Gameplay_ClearHUDRow(15);
             }
         } else {
             if(gTurnMode == TURNMODE_MOVE){
@@ -1159,22 +1160,22 @@ static void Gameplay_DrawHUD(void){
             } else {
                 ST7735_OutString(GameState_LocalizedText("Player --> Act", "Jugador->Actuar"));
             }
-            ST7735_SetCursor(0, 12);
+            ST7735_SetCursor(0, 11);
             if(gTurnMode == TURNMODE_MOVE){
                 ST7735_OutString(GameState_LocalizedText("Move target", "Mover objetivo"));
             } else {
                 ST7735_OutString(GameState_LocalizedText("Act target", "Atacar objetivo"));
             }
-            ST7735_SetCursor(0, 13);
+            ST7735_SetCursor(0, 12);
             ST7735_OutString(GameState_LocalizedText("A=Confirm B=Back", "A=Confirmar B=Volver"));
             if(enemyPresent){
-                ST7735_SetCursor(0, 14);
+                ST7735_SetCursor(0, 13);
                 ST7735_OutString(GameState_LocalizedText("Enemy HP:", "Vida enem.:"));
                 ST7735_OutUDec(enemyHP);
                 ST7735_OutString(GameState_LocalizedText(" ATK:", " ATQ:"));
                 ST7735_OutUDec(enemyATK);
             }
-            ST7735_SetCursor(0, 15);
+            ST7735_SetCursor(0, 14);
             ST7735_OutString("E:");
             ST7735_OutUDec(Gameplay_CurrentModeEnergyRemaining());
             ST7735_OutString("->");
@@ -1201,7 +1202,7 @@ static void Gameplay_DrawHUD(void){
 }
 
 static void Gameplay_DrawTurnBanner(void){
-    ST7735_FillRect(0, 96, 128, 8, ST7735_BLUE);
+    ST7735_FillRect(0, 88, 128, 8, ST7735_BLUE);
 }
 
 static void Gameplay_DrawRangeHighlights(void){
@@ -1314,7 +1315,8 @@ static void Gameplay_DrawHealthBar(void){
     static uint8_t prevAttackEnergy = 255;
     uint8_t i;
     uint8_t barX = 108;
-    uint8_t barStartY = 88;
+    uint8_t barStartY = 84;
+    uint8_t barStep = 7;
     if(!gForceHealthRedraw &&
        prevHealth == gPlayerHealth &&
        prevHealthMax == gPlayerHealthMax &&
@@ -1326,20 +1328,20 @@ static void Gameplay_DrawHealthBar(void){
     ST7735_SetCursor(18, 0);
     ST7735_OutString(GameState_LocalizedText("HP", "HP"));
     for(i = 0; i < gPlayerHealthMax; i++){
-        uint8_t y = (uint8_t)(barStartY - (i * 8));
+        uint8_t y = (uint8_t)(barStartY - (i * barStep));
         if(i < gPlayerHealth){
             ST7735_DrawBitmap(barX, y, redtile, 12, 12);
         } else {
             ST7735_DrawBitmap(barX, y, bluetile, 12, 12);
         }
     }
-    ST7735_SetCursor(15, 11);
+    ST7735_SetCursor(15, 10);
     ST7735_OutString(GameState_LocalizedText("Lv:", "Nv:"));
     ST7735_OutUDec(gCurrentStage);
-    ST7735_SetCursor(15, 12);
+    ST7735_SetCursor(15, 11);
     ST7735_OutString("M:");
     ST7735_OutUDec(gMoveEnergyRemaining);
-    ST7735_SetCursor(15, 13);
+    ST7735_SetCursor(15, 12);
     ST7735_OutString("A:");
     ST7735_OutUDec(gAttackEnergyRemaining);
     prevHealth = gPlayerHealth;
@@ -1416,23 +1418,20 @@ static void Gameplay_DrawEnemyTurnSummary(void){
     Gameplay_ClearHUDRow(13);
     Gameplay_ClearHUDRow(14);
     Gameplay_ClearHUDRow(15);
-    Gameplay_ClearHUDRow(16);
-    Gameplay_ClearHUDRow(17);
-    Gameplay_ClearHUDRow(18);
-    ST7735_FillRect(0, 96, 128, 8, ST7735_RED);
-    ST7735_SetCursor(0, 11);
+    ST7735_FillRect(0, 88, 128, 8, ST7735_RED);
+    ST7735_SetCursor(0, 10);
     ST7735_OutString(GameState_LocalizedText("ENEMY TURN", "TURNO ENEMIGO"));
-    ST7735_SetCursor(0, 12);
+    ST7735_SetCursor(0, 11);
     ST7735_OutString(GameState_LocalizedText("HP:", "HP:"));
     ST7735_OutUDec(gEnemyTurnHPBefore);
     ST7735_OutString("->");
     ST7735_OutUDec(gEnemyTurnHPAfter);
-    ST7735_SetCursor(0, 13);
+    ST7735_SetCursor(0, 12);
     ST7735_OutString(GameState_LocalizedText("Hits:", "Golpes:"));
     ST7735_OutUDec(gEnemyTurnEnemiesAttacked);
     ST7735_OutString(GameState_LocalizedText(" Move:", " Mueve:"));
     ST7735_OutUDec(gEnemyTurnEnemiesMoved);
-    ST7735_SetCursor(0, 14);
+    ST7735_SetCursor(0, 13);
     ST7735_OutString(GameState_LocalizedText("Dmg:", "Danio:"));
     ST7735_OutUDec(gEnemyTurnDamageTaken);
     ST7735_OutString(GameState_LocalizedText(" A=Next", " A=Sigue"));
@@ -1446,9 +1445,6 @@ static void Gameplay_AcknowledgeEnemyTurnSummary(void){
     Gameplay_ClearHUDRow(13);
     Gameplay_ClearHUDRow(14);
     Gameplay_ClearHUDRow(15);
-    Gameplay_ClearHUDRow(16);
-    Gameplay_ClearHUDRow(17);
-    Gameplay_ClearHUDRow(18);
     gEnemyTurnSummaryVisible = 0;
     gEnemyTurnSummaryDirty = 1;
     gAwaitingEnemyTurnAck = 0;
