@@ -519,6 +519,7 @@ static void GameState_HandlePressedGameplay(GameButton button){
                 gPlayerMenuState = PLAYERMENU_ROOT;
                 gNeedsFullGameplayRedraw = 1;
                 gForceHUDRedraw = 1;
+                gForceHealthRedraw = 1;
                 break;
             case GAMEBUTTON_ESC:
                 Gameplay_Shutdown();
@@ -587,6 +588,8 @@ static void GameState_HandlePressedGameplay(GameButton button){
             if(gPlayerMenuState == PLAYERMENU_ACT){
                 gPlayerMenuState = PLAYERMENU_ROOT;
                 gForceHUDRedraw = 1;
+                gForceHealthRedraw = 1;
+                gNeedsFullGameplayRedraw = 1;
             } else {
                 Gameplay_EndPlayerTurn();
             }
@@ -1119,6 +1122,7 @@ static void Gameplay_DrawHUD(void){
         Gameplay_ClearHUDRow(16);
         Gameplay_ClearHUDRow(17);
         Gameplay_ClearHUDRow(18);
+        gForceHealthRedraw = 1;
         Gameplay_DrawTurnBanner();
         ST7735_SetCursor(0, 11);
         if(!gSelectingGridAction){
