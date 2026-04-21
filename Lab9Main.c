@@ -127,12 +127,12 @@ uint8_t TExaS_LaunchPadLogicPB27PB26(void){
 }
 
 
-int main(void){ // main testing
+int main1(void){ // main testing
   __disable_irq();
   PLL_Init(); // set bus speed
   LaunchPad_Init();
   Switch_Init();
-  //DAC_Init();
+  Sound_Init();
   ADCinit();
   ST7735_InitPrintf(INITR_BLACKTAB); // INITR_REDTAB for AdaFruit, INITR_BLACKTAB for HiLetGo
     //note: if you colors are weird, see different options for
@@ -158,7 +158,7 @@ int main(void){ // main testing
 
 
 // use main4 to test sound outputs
-int main4(void){ uint32_t last=0,now;
+int main(void){ uint32_t last=0,now;
   __disable_irq();
   PLL_Init(); // set bus speed
   LaunchPad_Init();
