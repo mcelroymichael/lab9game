@@ -1110,8 +1110,7 @@ static void Gameplay_DrawHUD(void){
            prevEnemyATK == enemyATK){
             return;
         }
-        Gameplay_ClearHUDRow(10);
-        Gameplay_ClearHUDRow(11);
+
         Gameplay_ClearHUDRow(12);
         Gameplay_ClearHUDRow(13);
         Gameplay_ClearHUDRow(14);
