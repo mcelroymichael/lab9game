@@ -38,7 +38,8 @@ void SysTick_Handler(void){ // called at 11 kHz
 
   if (Sound_count > 0) {
       // Read the 8-bit sample and bit-shift it to 12-bit (multiply by 16)
-      uint16_t sample_12bit = (*Sound_pt) << 4; 
+      uint16_t sample_12bit = *Sound_pt; 
+      sample_12bit = (sample_12bit<<4);
       
       // Output to the DAC. Use the DriverLib function or register access:
       // DriverLib approach:
